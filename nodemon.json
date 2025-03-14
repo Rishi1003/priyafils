@@ -1,0 +1,14 @@
+{
+    "restartable": "rs",
+    "ignore": [
+        "node_modules/**",
+        ".git/**"
+    ],
+    "verbose": true,
+    "execMap": {
+        "js": "node --experimental-modules"
+    },
+    "events": {
+        "restart": "kill-port 3000"
+    }
+}

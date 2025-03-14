@@ -1,0 +1,393 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TimeRecord {
+  id   Int      @id @default(autoincrement())
+  time DateTime @unique
+}
+
+model StockValuation {
+  id            Int    @id @default(autoincrement())
+  time_id       Int
+  material_type String
+  qty           Float
+  value         Float
+
+  @@map("stock_valuation")
+}
+
+model HDPEStockQtyAnalysis {
+  id                  Int   @id @default(autoincrement())
+  time_id             Int
+  openingStock        Float
+  purchases           Float
+  jobWorkReceipts     Float
+  purchaseReturn      Float
+  consumptionMonofil  Float
+  consumptionShadeNet Float
+  consumptionPPFabric Float
+  sales               Float
+  closingStock        Float
+}
+
+model MBStockQtyAnalysis {
+  id                       Int   @id @default(autoincrement())
+  time_id                  Int
+  openingStock             Float
+  purchases                Float
+  purchaseReturn           Float
+  consumptionMonofil       Float
+  consumptionShadeNet      Float
+  consumptionPPFabricSales Float
+  consumption              Float
+  sales                    Float
+  closingStock             Float
+}
+
+model CPStock {
+  id                  Int   @id @default(autoincrement())
+  time_id             Int
+  openingStock        Float
+  purchases           Float
+  purchaseReturn      Float
+  consumptionMonofil  Float
+  consumptionShadeNet Float
+  consumptionPPFabric Float
+  consumption         Float
+  closingStock        Float
+}
+
+model WastageComputationQtyAnalysis {
+  id                  Int   @id @default(autoincrement())
+  time_id             Int
+  consumptionMonofil  Float
+  consumptionShadeNet Float
+  consumptionPPFabric Float
+  hdpeMonofilament    Float
+  hdpeMonofilamentSec Float
+  packingMaterials    Float
+  totalProduction     Float
+  wastage             Float
+  wastagePercentage   Float
+}
+
+model HDPEMonofilamentFactoryQtyAnalysis {
+  id                Int   @id @default(autoincrement())
+  time_id           Int
+  openingBalance    Float
+  production        Float
+  jobWorkProduction Float
+  rf                Float
+  total             Float
+  consumption       Float
+  sales             Float
+  jobWork           Float
+  totalConsumption  Float
+  closingBalance    Float
+}
+
+model HDPEMonofilamentFabricatorQtyAnalysis {
+  id                      Int   @id @default(autoincrement())
+  time_id                 Int
+  openingBalance          Float
+  hdpeMonofilamentReceipt Float
+  total                   Float
+  hdpeWovenFabrics        Float
+  hdpeWovenFabricsRF      Float
+  hdpeWovenFabricsSec     Float
+  waste                   Float
+  ropeHanks               Float
+  totalProcessed          Float
+  wastePercentage         Float
+  closingBalance          Float
+}
+
+model HDPEWovenFabricQtyAnalysis {
+  id                      Int   @id @default(autoincrement())
+  time_id                 Int
+  openingBalance          Float
+  production              Float
+  purchases               Float
+  productionJWSalesReturn Float
+  sales                   Float
+  stockTransferSales      Float
+  jwIssues                Float
+  samplesAndCutPieces     Float
+  closingBalance          Float
+}
+
+model ShadeNetsTradingQtyAnalysis {
+  id                        Int   @id @default(autoincrement())
+  time_id                   Int
+  openingBalance            Float
+  receiptsTapeShadePurchase Float
+  receiptsTSNJobWork        Float
+  receiptsMonoShade         Float
+  receiptsWeedMat           Float
+  receiptsMulch             Float
+  receiptsPPFabric          Float
+  receiptsPPSacks           Float
+  totalReceipts             Float
+  buringLoss                Float
+  salesMSN                  Float
+  salesTSN                  Float
+  salesWeedMat              Float
+  salesMulch                Float
+  salesPPFabric             Float
+  salesPPSacks              Float
+  salesTotal                Float
+  closingBalance            Float
+}
+
+model WasteQtyAnalysis {
+  id                  Int   @id @default(autoincrement())
+  time_id             Int
+  openingBalance      Float
+  receipts            Float
+  issuedForProcessing Float
+  buringLoss          Float
+  sales               Float
+  closingBalance      Float
+}
+
+model ConsolidatedQtyAnalysis {
+  id              Int   @id @default(autoincrement())
+  time_id         Int
+  openingStock    Float
+  purchases       Float
+  totalStock      Float
+  closingStock    Float
+  consumption     Float
+  sales           Float
+  waste           Float
+  wastePercentage Float
+}
+
+model RMSFGFGSeparatedQtyAnalysis {
+  id                      Int   @id @default(autoincrement())
+  time_id                 Int
+  openingStockRM          Float
+  purchases               Float
+  totalStock              Float
+  closingStockRM          Float
+  saleFromRM              Float
+  saleFromSFGFG           Float
+  saleAndWasteConsumption Float
+  sales                   Float
+  waste                   Float
+  wastePercentage         Float
+}
+
+/////// Purchase Table ////////
+
+model hdpePurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model MBPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model CPPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model ConsumablesPurchase {
+  id       Int   @id @default(autoincrement())
+  time_id  Int
+  value    Float
+  discount Float
+}
+
+model TSNPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model MSNPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model PPSPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model TotalPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model SravyaOthersPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model YarnPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model TSNRMConsumedPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model TSNConsumedPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model TSNTotalRMConsumedPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+model TRDNGPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int
+  kgs     Float
+  value   Float
+}
+
+//////inventory sales//////
+
+model inventoryDetails {
+  id           Int    @id @default(autoincrement())
+  time_id      Int
+  materialName String
+  outwardQty   Float
+  amount       Float
+}
+
+model salesDetails {
+  id                 Int   @id @default(autoincrement())
+  time_id            Int
+  grandTotalValue    Float
+  grandTotalOutward  Float
+  otherIncome        Float
+  grossSales         Float
+  tax                Float
+  tcs                Float
+  discount           Float
+  creditNote         Float
+  pal1FinalSales     Float
+  RMPurchaseForSales Float
+}
+
+//////////direct Expenses/////////////
+
+model manufacturingExpensesDirectExpenses {
+  id                         Int   @id @default(autoincrement())
+  timeId                     Int
+  employeeRemuneration       Float
+  coolieCartage              Float
+  depreciation               Float
+  fabricationChargesBlore    Float
+  fabricationChargesSircilla Float
+  factoryRepair              Float
+  forwardingChargesPaid      Float
+  freightInwards             Float
+  insuranceOnAssets          Float
+  itcReversal                Float
+  medicalExpenses            Float
+  packingMaterial            Float
+  electricity                Float
+  processingCharges          Float
+  rent                       Float
+  repairAMC                  Float
+  yarnProcessing             Float
+}
+
+model extrasManaufacturingDirectExpenses {
+  id                 Int   @id @default(autoincrement())
+  timeId             Int
+  manufacturing      Float
+  itcReserved        Float
+  inHouseFabrication Float
+  fabrication        Float
+  directExpenses     Float
+  deprecation        Float
+  total              Float
+  totalFabrication   Float
+
+  inHouseQty        Float
+  fabricators       Float
+  yarnProcessingQty Float
+  indirect          Float
+  totalExpenses     Float
+  PnL               Float
+}
+
+model variableAndDirect {
+  id                        Int   @id @default(autoincrement())
+  timeId                    Int
+  wagesFabric               Float
+  wagesInspectionDispatch   Float
+  fabricationCharges        Float
+  wagesYarn                 Float
+  yarnProcessingCharges     Float
+  freightInward             Float
+  powerBill                 Float
+  rmMachinery               Float
+  rmElectricals             Float
+  rent                      Float
+  packingCharges            Float
+  misc                      Float
+  workingCapitalBankCharges Float
+  workingCapitalLc          Float
+  workingCapitalOcc         Float
+}
+
+model fixedExpenses {
+  id                       Int   @id @default(autoincrement())
+  timeId                   Int
+  employeesWelfareExp      Float
+  salariesOffice           Float
+  directorsRemuneration    Float
+  depreciation             Float
+  admnExpns                Float
+  sellingExpns             Float
+  financeCostIntOnECLGS    Float
+  financeCostIntOnDeposits Float
+}

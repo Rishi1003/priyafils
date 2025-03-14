@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: priyafils
+      POSTGRES_PASSWORD: priyafils
+      POSTGRES_DB: priyafils
+    ports:
+      - "5432:5432"
+    volumes:
+      - priyafils_db:/var/lib/postgresql/data
+
+volumes:
+  priyafils_db:
