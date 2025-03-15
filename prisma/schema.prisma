@@ -391,3 +391,81 @@ model fixedExpenses {
   financeCostIntOnECLGS    Float
   financeCostIntOnDeposits Float
 }
+
+//////////indirect Expenses/////////////
+
+model AdministrativeExpense {
+  id                              Int   @id @default(autoincrement())
+  timeId                          Int
+  vehicleFourWheelersExpenses     Float
+  installationProgrammingCharges  Float
+  arrearsOfTax                    Float
+  auditFees                       Float
+  booksPeriodical                 Float
+  buildingRepairMaintenanceExp    Float
+  computerStoresMaint             Float
+  conveyanceCharges               Float
+  goldenJubileeCelebrationExps    Float
+  donation                        Float
+  generalExpenses                 Float
+  generalRepairMaintainance       Float
+  auditFeesGST                    Float
+  incomeTaxExps                   Float
+  medicalExps                     Float
+  medicalclaimExps                Float
+  officeMaintenance               Float
+  poojaExpenses                   Float
+  postageTelTelexCharges          Float
+  printingStationary              Float
+  professionalCharges             Float
+  professionalConsultationCharges Float
+  ratesTaxes                      Float
+  registrationRenewal             Float
+  repairsServiceCharges           Float
+  freightCharges                  Float
+  roundOff                        Float
+  seminarTrainingDvtExp           Float
+  softwareMaintenance             Float
+  serviceCharges                  Float
+  subscriptionMembership          Float
+  tdsInterestOnTDS                Float
+  telephoneChargesAirtel          Float
+  telephoneChargesBSNL            Float
+  fluctuationInForeignCurrency    Float
+  VehicleMaintainance             Float
+  WatchWard                       Float
+}
+
+// Model for FinancialExpenses JSON
+model FinancialExpense {
+  id                              Int   @id @default(autoincrement())
+  timeId                          Int
+  BankCharges                     Float
+  InterestAndBankChargesILC       Float
+  InterestOnUnsecuredLoansMonthly Float
+  InterestOnCarLoans              Float
+  InterestOnOCC                   Float
+  InterestOnPNBHousingFinance     Float
+  InterestOnTermLoan              Float
+  LoanProcessingCharges           Float
+  InterestToOthersVSL             Float
+  InterestToDepositors            Float
+}
+
+// Model for SellingExpenses JSON
+model SellingExpense {
+  id                          Int   @id @default(autoincrement())
+  timeId                      Int
+  Advertisement               Float
+  AdvertisementBadDebts       Float
+  CommissionOnSales           Float
+  DebitBalancesWrittenOff     Float
+  FreightOutwardsOceanFreight Float
+  GiftArticles                Float
+  MarketingExpenses           Float
+  SalesPromotion              Float
+  TransportationCharges       Float
+  TravellingExpenses          Float
+  DiscountAllowed             Float
+  Discount                    Float
+}
