@@ -1073,14 +1073,14 @@ app.get("/direct-expenses", async (req, res) => {
 app.get("/indirect-expenses", async (req, res) => {
     try {
         // Step 1: Check if file exists
-        const filePath = './uploads/indirect-expenses.xlsx'; // Adjust the path if needed
+        const filePath = './uploads/indirect-expenses.xlsx';
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({ message: 'File not found' });
         }
 
         // Step 2: Read Excel file
         const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0]; // Assuming data is in the first sheet
+        const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
 
         // Step 3: Extract the required data
@@ -1090,8 +1090,8 @@ app.get("/indirect-expenses", async (req, res) => {
             return res.status(400).json({ message: 'Invalid file format' });
         }
 
-        // Extract date from the first row, first column
-        const rawDate = data[0][1]; // First row, first column
+        // Extract date from the first row, second column
+        const rawDate = data[0][1];
         console.log(rawDate);
         const parsedDate = parseExcelDate(rawDate);
 
@@ -1101,112 +1101,142 @@ app.get("/indirect-expenses", async (req, res) => {
 
         console.log('📅 Extracted Date:', parsedDate);
 
-        // Step 4: Find the matching TimeRecord in Prisma
+        // Step 4: Find or create TimeRecord
         let timeRecord = await prisma.timeRecord.findUnique({
-            where: {
-                time: parsedDate,
-            },
+            where: { time: parsedDate },
         });
 
-        // If no matching TimeRecord is found, create a new one
         if (!timeRecord) {
             timeRecord = await prisma.timeRecord.create({
-                data: {
-                    time: parsedDate,
-                },
+                data: { time: parsedDate },
             });
-
             console.log('🆔 Created new TimeRecord ID:', timeRecord.id);
         } else {
             console.log('🆔 Found existing TimeRecord ID:', timeRecord.id);
         }
 
-        const administrativeExpenses = {
-            time_id: timeRecord.id, // Using `timeRecord.id` as provided
-            // Mapping expenses from the image to data array indices (starting from index 2)
-            vehicleFourWheelersExpenses: data[2] && data[2][1] ? data[2][1] : 0,
-            installationProgrammingCharges: data[3] && data[3][1] ? data[3][1] : 0,
-            arrearsOfTax: data[4] && data[4][1] ? data[4][1] : 0,
-            auditFees: data[5] && data[5][1] ? data[5][1] : 0,
-            booksPeriodical: data[6] && data[6][1] ? data[6][1] : 0,
-            buildingRepairMaintenanceExp: data[7] && data[7][1] ? data[7][1] : 0,
-            computerStoresMaint: data[8] && data[8][1] ? data[8][1] : 0,
-            conveyanceCharges: data[9] && data[9][1] ? data[9][1] : 0,
-            goldenJubileeCelebrationExps: data[10] && data[10][1] ? data[10][1] : 0,
-            donation: data[11] && data[11][1] ? data[11][1] : 0,
-            generalExpenses: data[12] && data[12][1] ? data[12][1] : 0,
-            generalRepairMaintainance: data[13] && data[13][1] ? data[13][1] : 0,
-            auditFeesGST: data[14] && data[14][1] ? data[14][1] : 0,
-            incomeTaxExps: data[15] && data[15][1] ? data[15][1] : 0,
-            medicalExps: data[16] && data[16][1] ? data[16][1] : 0,
-            medicalclaimExps: data[17] && data[17][1] ? data[17][1] : 0,
-            officeMaintenance: data[18] && data[18][1] ? data[18][1] : 0,
-            poojaExpenses: data[19] && data[19][1] ? data[19][1] : 0,
-            postageTelTelexCharges: data[20] && data[20][1] ? data[20][1] : 0,
-            printingStationary: data[21] && data[21][1] ? data[21][1] : 0,
-            professionalCharges: data[22] && data[22][1] ? data[22][1] : 0,
-            professionalConsultationCharges: data[23] && data[23][1] ? data[23][1] : 0,
-            ratesTaxes: data[24] && data[24][1] ? data[24][1] : 0,
-            registrationRenewal: data[25] && data[25][1] ? data[25][1] : 0,
-            repairsServiceCharges: data[26] && data[26][1] ? data[26][1] : 0,
-            freightCharges: data[27] && data[27][1] ? data[27][1] : 0,
-            roundOff: data[28] && data[28][1] ? data[28][1] : 0,
-            seminarTrainingDvtExp: data[29] && data[29][1] ? data[29][1] : 0,
-            softwareMaintenance: data[30] && data[30][1] ? data[30][1] : 0,
-            serviceCharges: data[31] && data[31][1] ? data[31][1] : 0,
-            subscriptionMembership: data[32] && data[32][1] ? data[32][1] : 0,
-            tdsInterestOnTDS: data[33] && data[33][1] ? data[33][1] : 0,
-            telephoneChargesAirtel: data[34] && data[34][1] ? data[34][1] : 0,
-            telephoneChargesBSNL: data[35] && data[35][1] ? data[35][1] : 0,
-            fluctuationInForeignCurrency: data[36] && data[36][1] ? data[36][1] : 0,
-            VehicleMaintainance: data[37] && data[37][1] ? data[37][1] : 0,
-            WatchWard: data[38] && data[38][1] ? data[38][1] : 0,
-        };
+        // Step 5: Extract expenses by section
+        const adminExpenses = [];
+        const financialExpenses = [];
+        const sellingExpenses = [];
+        let currentSection = '';
 
-        console.log('📊 Extracted Administrative Expenses Expenses Data:', administrativeExpenses);
+        // Start from row 1 (skip the date row)
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            const type = row[0]; // First column is the type
+            const value = row[1]; // Second column is the value
 
-        const FinancialExpenses = {
-            time_id: timeRecord.id, // Using `timeRecord.id` as provided
-            BankCharges: data[40] && data[40][1] ? data[40][1] : 0,
-            InterestAndBankChargesILC: data[41] && data[41][1] ? data[41][1] : 0,
-            InterestOnUnsecuredLoansMonthly: data[42] && data[42][1] ? data[42][1] : 0,
-            InterestOnCarLoans: data[43] && data[43][1] ? data[43][1] : 0,
-            InterestOnOCC: data[44] && data[44][1] ? data[44][1] : 0,
-            InterestOnPNBHousingFinance: data[45] && data[45][1] ? data[45][1] : 0,
-            InterestOnTermLoan: data[46] && data[46][1] ? data[46][1] : 0,
-            LoanProcessingCharges: data[47] && data[47][1] ? data[47][1] : 0,
-            InterestToOthersVSL: data[48] && data[48][1] ? data[48][1] : 0,
-            InterestToDepositors: data[49] && data[49][1] ? data[49][1] : 0,
-        };
+            // Skip empty rows
+            if (!type) continue;
 
-        console.log('📊 Extracted Financial Expenses Data:', FinancialExpenses);
+            // Check for section headers
+            if (type === "Administrative Expenses") {
+                currentSection = 'admin';
+            } else if (type === "Financial Expenses") {
+                currentSection = 'financial';
+            } else if (type === "Selling Expenses") {
+                currentSection = 'selling';
+            } else if (type === "Grand Total") {
+                break; // Stop at Grand Total
+            } else if (currentSection) {
+                // Add expense to the current section
+                const expense = {
+                    type: type || `Unknown_${i}`,
+                    value: value !== undefined && value !== "" ? parseFloat(value) : 0
+                };
+                if (currentSection === 'admin') adminExpenses.push(expense);
+                if (currentSection === 'financial') financialExpenses.push(expense);
+                if (currentSection === 'selling') sellingExpenses.push(expense);
+            }
+        }
 
+        // Step 6: Save to database using upsert
+        // Administrative Expenses
+        if (adminExpenses.length > 0) {
+            for (const expense of adminExpenses) {
+                await prisma.administrativeExpense.upsert({
+                    where: {
+                        time_id_type_unique: {
+                            time_id: timeRecord.id,
+                            type: expense.type
+                        }
+                    },
+                    update: {
+                        value: expense.value
+                    },
+                    create: {
+                        time_id: timeRecord.id,
+                        type: expense.type,
+                        value: expense.value
+                    }
+                });
+            }
+            console.log('📦 Upserted Administrative Expenses to the database');
+        }
 
-        const SellingExpenses = {
-            time_id: timeRecord.id, // Using `timeRecord.id` as provided
-            Advertisement: data[51] && data[51][1] ? data[51][1] : 0,
-            AdvertisementBadDebts: data[52] && data[52][1] ? data[52][1] : 0,
-            CommissionOnSales: data[53] && data[53][1] ? data[53][1] : 0,
-            DebitBalancesWrittenOff: data[54] && data[54][1] ? data[54][1] : 0,
-            FreightOutwardsOceanFreight: data[55] && data[55][1] ? data[55][1] : 0,
-            GiftArticles: data[56] && data[56][1] ? data[56][1] : 0,
-            MarketingExpenses: data[57] && data[57][1] ? data[57][1] : 0,
-            SalesPromotion: data[58] && data[58][1] ? data[58][1] : 0,
-            TransportationCharges: data[59] && data[59][1] ? data[59][1] : 0,
-            TravellingExpenses: data[60] && data[60][1] ? data[60][1] : 0,
-            DiscountAllowed: data[61] && data[61][1] ? data[61][1] : 0,
-            Discount: data[62] && data[62][1] ? data[62][1] : 0,
-        };
+        // Financial Expenses
+        if (financialExpenses.length > 0) {
+            for (const expense of financialExpenses) {
+                await prisma.financialExpense.upsert({
+                    where: {
+                        time_id_type_unique: {
+                            time_id: timeRecord.id,
+                            type: expense.type
+                        }
+                    },
+                    update: {
+                        value: expense.value
+                    },
+                    create: {
+                        time_id: timeRecord.id,
+                        type: expense.type,
+                        value: expense.value
+                    }
+                });
+            }
+            console.log('📦 Upserted Financial Expenses to the database');
+        }
 
-        console.log('📊 Extracted Selling Expenses Data:', SellingExpenses);
+        // Selling Expenses
+        if (sellingExpenses.length > 0) {
+            for (const expense of sellingExpenses) {
+                await prisma.sellingExpense.upsert({
+                    where: {
+                        time_id_type_unique: {
+                            time_id: timeRecord.id,
+                            type: expense.type
+                        }
+                    },
+                    update: {
+                        value: expense.value
+                    },
+                    create: {
+                        time_id: timeRecord.id,
+                        type: expense.type,
+                        value: expense.value
+                    }
+                });
+            }
+            console.log('📦 Upserted Selling Expenses to the database');
+        }
 
-
-        return res.json({ message: 'Expenses data extracted and added successfully', data: FinancialExpenses });
+        // Step 7: Return the response
+        return res.json({
+            message: 'Expenses data extracted and added successfully',
+            // data: {
+            //     administrativeExpenses: adminExpenses,
+            //     financialExpenses: financialExpenses,
+            //     sellingExpenses: sellingExpenses
+            // }
+        });
     } catch (error) {
         console.error('❌ Error:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
     }
-})
+});
+
+
 
 const server = app.listen(port, () => {
     console.log(`Server running on ${port}`);

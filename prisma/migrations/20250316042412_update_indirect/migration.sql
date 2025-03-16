@@ -384,7 +384,7 @@ CREATE TABLE "salesDetails" (
 -- CreateTable
 CREATE TABLE "manufacturingExpensesDirectExpenses" (
     "id" SERIAL NOT NULL,
-    "timeId" INTEGER NOT NULL,
+    "time_id" INTEGER NOT NULL,
     "employeeRemuneration" DOUBLE PRECISION NOT NULL,
     "coolieCartage" DOUBLE PRECISION NOT NULL,
     "depreciation" DOUBLE PRECISION NOT NULL,
@@ -409,7 +409,7 @@ CREATE TABLE "manufacturingExpensesDirectExpenses" (
 -- CreateTable
 CREATE TABLE "extrasManaufacturingDirectExpenses" (
     "id" SERIAL NOT NULL,
-    "timeId" INTEGER NOT NULL,
+    "time_id" INTEGER NOT NULL,
     "manufacturing" DOUBLE PRECISION NOT NULL,
     "itcReserved" DOUBLE PRECISION NOT NULL,
     "inHouseFabrication" DOUBLE PRECISION NOT NULL,
@@ -431,7 +431,7 @@ CREATE TABLE "extrasManaufacturingDirectExpenses" (
 -- CreateTable
 CREATE TABLE "variableAndDirect" (
     "id" SERIAL NOT NULL,
-    "timeId" INTEGER NOT NULL,
+    "time_id" INTEGER NOT NULL,
     "wagesFabric" DOUBLE PRECISION NOT NULL,
     "wagesInspectionDispatch" DOUBLE PRECISION NOT NULL,
     "fabricationCharges" DOUBLE PRECISION NOT NULL,
@@ -454,7 +454,7 @@ CREATE TABLE "variableAndDirect" (
 -- CreateTable
 CREATE TABLE "fixedExpenses" (
     "id" SERIAL NOT NULL,
-    "timeId" INTEGER NOT NULL,
+    "time_id" INTEGER NOT NULL,
     "employeesWelfareExp" DOUBLE PRECISION NOT NULL,
     "salariesOffice" DOUBLE PRECISION NOT NULL,
     "directorsRemuneration" DOUBLE PRECISION NOT NULL,
@@ -470,44 +470,9 @@ CREATE TABLE "fixedExpenses" (
 -- CreateTable
 CREATE TABLE "AdministrativeExpense" (
     "id" SERIAL NOT NULL,
-    "timeId" INTEGER NOT NULL,
-    "vehicleFourWheelersExpenses" DOUBLE PRECISION NOT NULL,
-    "installationProgrammingCharges" DOUBLE PRECISION NOT NULL,
-    "arrearsOfTax" DOUBLE PRECISION NOT NULL,
-    "auditFees" DOUBLE PRECISION NOT NULL,
-    "booksPeriodical" DOUBLE PRECISION NOT NULL,
-    "buildingRepairMaintenanceExp" DOUBLE PRECISION NOT NULL,
-    "computerStoresMaint" DOUBLE PRECISION NOT NULL,
-    "conveyanceCharges" DOUBLE PRECISION NOT NULL,
-    "goldenJubileeCelebrationExps" DOUBLE PRECISION NOT NULL,
-    "donation" DOUBLE PRECISION NOT NULL,
-    "generalExpenses" DOUBLE PRECISION NOT NULL,
-    "generalRepairMaintainance" DOUBLE PRECISION NOT NULL,
-    "auditFeesGST" DOUBLE PRECISION NOT NULL,
-    "incomeTaxExps" DOUBLE PRECISION NOT NULL,
-    "medicalExps" DOUBLE PRECISION NOT NULL,
-    "medicalclaimExps" DOUBLE PRECISION NOT NULL,
-    "officeMaintenance" DOUBLE PRECISION NOT NULL,
-    "poojaExpenses" DOUBLE PRECISION NOT NULL,
-    "postageTelTelexCharges" DOUBLE PRECISION NOT NULL,
-    "printingStationary" DOUBLE PRECISION NOT NULL,
-    "professionalCharges" DOUBLE PRECISION NOT NULL,
-    "professionalConsultationCharges" DOUBLE PRECISION NOT NULL,
-    "ratesTaxes" DOUBLE PRECISION NOT NULL,
-    "registrationRenewal" DOUBLE PRECISION NOT NULL,
-    "repairsServiceCharges" DOUBLE PRECISION NOT NULL,
-    "freightCharges" DOUBLE PRECISION NOT NULL,
-    "roundOff" DOUBLE PRECISION NOT NULL,
-    "seminarTrainingDvtExp" DOUBLE PRECISION NOT NULL,
-    "softwareMaintenance" DOUBLE PRECISION NOT NULL,
-    "serviceCharges" DOUBLE PRECISION NOT NULL,
-    "subscriptionMembership" DOUBLE PRECISION NOT NULL,
-    "tdsInterestOnTDS" DOUBLE PRECISION NOT NULL,
-    "telephoneChargesAirtel" DOUBLE PRECISION NOT NULL,
-    "telephoneChargesBSNL" DOUBLE PRECISION NOT NULL,
-    "fluctuationInForeignCurrency" DOUBLE PRECISION NOT NULL,
-    "VehicleMaintainance" DOUBLE PRECISION NOT NULL,
-    "WatchWard" DOUBLE PRECISION NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "type" TEXT NOT NULL,
+    "value" DOUBLE PRECISION NOT NULL,
 
     CONSTRAINT "AdministrativeExpense_pkey" PRIMARY KEY ("id")
 );
@@ -515,17 +480,9 @@ CREATE TABLE "AdministrativeExpense" (
 -- CreateTable
 CREATE TABLE "FinancialExpense" (
     "id" SERIAL NOT NULL,
-    "timeId" INTEGER NOT NULL,
-    "BankCharges" DOUBLE PRECISION NOT NULL,
-    "InterestAndBankChargesILC" DOUBLE PRECISION NOT NULL,
-    "InterestOnUnsecuredLoansMonthly" DOUBLE PRECISION NOT NULL,
-    "InterestOnCarLoans" DOUBLE PRECISION NOT NULL,
-    "InterestOnOCC" DOUBLE PRECISION NOT NULL,
-    "InterestOnPNBHousingFinance" DOUBLE PRECISION NOT NULL,
-    "InterestOnTermLoan" DOUBLE PRECISION NOT NULL,
-    "LoanProcessingCharges" DOUBLE PRECISION NOT NULL,
-    "InterestToOthersVSL" DOUBLE PRECISION NOT NULL,
-    "InterestToDepositors" DOUBLE PRECISION NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "type" TEXT NOT NULL,
+    "value" DOUBLE PRECISION NOT NULL,
 
     CONSTRAINT "FinancialExpense_pkey" PRIMARY KEY ("id")
 );
@@ -533,22 +490,117 @@ CREATE TABLE "FinancialExpense" (
 -- CreateTable
 CREATE TABLE "SellingExpense" (
     "id" SERIAL NOT NULL,
-    "timeId" INTEGER NOT NULL,
-    "Advertisement" DOUBLE PRECISION NOT NULL,
-    "AdvertisementBadDebts" DOUBLE PRECISION NOT NULL,
-    "CommissionOnSales" DOUBLE PRECISION NOT NULL,
-    "DebitBalancesWrittenOff" DOUBLE PRECISION NOT NULL,
-    "FreightOutwardsOceanFreight" DOUBLE PRECISION NOT NULL,
-    "GiftArticles" DOUBLE PRECISION NOT NULL,
-    "MarketingExpenses" DOUBLE PRECISION NOT NULL,
-    "SalesPromotion" DOUBLE PRECISION NOT NULL,
-    "TransportationCharges" DOUBLE PRECISION NOT NULL,
-    "TravellingExpenses" DOUBLE PRECISION NOT NULL,
-    "DiscountAllowed" DOUBLE PRECISION NOT NULL,
-    "Discount" DOUBLE PRECISION NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "type" TEXT NOT NULL,
+    "value" DOUBLE PRECISION NOT NULL,
 
     CONSTRAINT "SellingExpense_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TimeRecord_time_key" ON "TimeRecord"("time");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "stock_valuation_time_id_material_type_key" ON "stock_valuation"("time_id", "material_type");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "HDPEStockQtyAnalysis_time_id_key" ON "HDPEStockQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MBStockQtyAnalysis_time_id_key" ON "MBStockQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CPStock_time_id_key" ON "CPStock"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WastageComputationQtyAnalysis_time_id_key" ON "WastageComputationQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "HDPEMonofilamentFactoryQtyAnalysis_time_id_key" ON "HDPEMonofilamentFactoryQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "HDPEMonofilamentFabricatorQtyAnalysis_time_id_key" ON "HDPEMonofilamentFabricatorQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "HDPEWovenFabricQtyAnalysis_time_id_key" ON "HDPEWovenFabricQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ShadeNetsTradingQtyAnalysis_time_id_key" ON "ShadeNetsTradingQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WasteQtyAnalysis_time_id_key" ON "WasteQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConsolidatedQtyAnalysis_time_id_key" ON "ConsolidatedQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RMSFGFGSeparatedQtyAnalysis_time_id_key" ON "RMSFGFGSeparatedQtyAnalysis"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "hdpePurchase_time_id_key" ON "hdpePurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MBPurchase_time_id_key" ON "MBPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CPPurchase_time_id_key" ON "CPPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConsumablesPurchase_time_id_key" ON "ConsumablesPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TSNPurchase_time_id_key" ON "TSNPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MSNPurchase_time_id_key" ON "MSNPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PPSPurchase_time_id_key" ON "PPSPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TotalPurchase_time_id_key" ON "TotalPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SravyaOthersPurchase_time_id_key" ON "SravyaOthersPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "YarnPurchase_time_id_key" ON "YarnPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TSNRMConsumedPurchase_time_id_key" ON "TSNRMConsumedPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TSNConsumedPurchase_time_id_key" ON "TSNConsumedPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TSNTotalRMConsumedPurchase_time_id_key" ON "TSNTotalRMConsumedPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TRDNGPurchase_time_id_key" ON "TRDNGPurchase"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "inventoryDetails_time_id_materialName_key" ON "inventoryDetails"("time_id", "materialName");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "salesDetails_time_id_key" ON "salesDetails"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "manufacturingExpensesDirectExpenses_time_id_key" ON "manufacturingExpensesDirectExpenses"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "extrasManaufacturingDirectExpenses_time_id_key" ON "extrasManaufacturingDirectExpenses"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "variableAndDirect_time_id_key" ON "variableAndDirect"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "fixedExpenses_time_id_key" ON "fixedExpenses"("time_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AdministrativeExpense_time_id_type_key" ON "AdministrativeExpense"("time_id", "type");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FinancialExpense_time_id_type_key" ON "FinancialExpense"("time_id", "type");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SellingExpense_time_id_type_key" ON "SellingExpense"("time_id", "type");

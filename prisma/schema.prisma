@@ -398,77 +398,28 @@ model fixedExpenses {
 //////////indirect Expenses/////////////
 
 model AdministrativeExpense {
-  id                              Int   @id @default(autoincrement())
-  time_id                         Int   @unique
-  vehicleFourWheelersExpenses     Float
-  installationProgrammingCharges  Float
-  arrearsOfTax                    Float
-  auditFees                       Float
-  booksPeriodical                 Float
-  buildingRepairMaintenanceExp    Float
-  computerStoresMaint             Float
-  conveyanceCharges               Float
-  goldenJubileeCelebrationExps    Float
-  donation                        Float
-  generalExpenses                 Float
-  generalRepairMaintainance       Float
-  auditFeesGST                    Float
-  incomeTaxExps                   Float
-  medicalExps                     Float
-  medicalclaimExps                Float
-  officeMaintenance               Float
-  poojaExpenses                   Float
-  postageTelTelexCharges          Float
-  printingStationary              Float
-  professionalCharges             Float
-  professionalConsultationCharges Float
-  ratesTaxes                      Float
-  registrationRenewal             Float
-  repairsServiceCharges           Float
-  freightCharges                  Float
-  roundOff                        Float
-  seminarTrainingDvtExp           Float
-  softwareMaintenance             Float
-  serviceCharges                  Float
-  subscriptionMembership          Float
-  tdsInterestOnTDS                Float
-  telephoneChargesAirtel          Float
-  telephoneChargesBSNL            Float
-  fluctuationInForeignCurrency    Float
-  VehicleMaintainance             Float
-  WatchWard                       Float
+  id      Int    @id @default(autoincrement())
+  time_id Int
+  type    String
+  value   Float
+
+  @@unique([time_id, type], name: "time_id_type_unique")
 }
 
-// Model for FinancialExpenses JSON
 model FinancialExpense {
-  id                              Int   @id @default(autoincrement())
-  time_id                         Int   @unique
-  BankCharges                     Float
-  InterestAndBankChargesILC       Float
-  InterestOnUnsecuredLoansMonthly Float
-  InterestOnCarLoans              Float
-  InterestOnOCC                   Float
-  InterestOnPNBHousingFinance     Float
-  InterestOnTermLoan              Float
-  LoanProcessingCharges           Float
-  InterestToOthersVSL             Float
-  InterestToDepositors            Float
+  id      Int    @id @default(autoincrement())
+  time_id Int
+  type    String
+  value   Float
+
+  @@unique([time_id, type], name: "time_id_type_unique")
 }
 
-// Model for SellingExpenses JSON
 model SellingExpense {
-  id                          Int   @id @default(autoincrement())
-  time_id                     Int   @unique
-  Advertisement               Float
-  AdvertisementBadDebts       Float
-  CommissionOnSales           Float
-  DebitBalancesWrittenOff     Float
-  FreightOutwardsOceanFreight Float
-  GiftArticles                Float
-  MarketingExpenses           Float
-  SalesPromotion              Float
-  TransportationCharges       Float
-  TravellingExpenses          Float
-  DiscountAllowed             Float
-  Discount                    Float
+  id      Int    @id @default(autoincrement())
+  time_id Int
+  type    String
+  value   Float
+
+  @@unique([time_id, type], name: "time_id_type_unique")
 }
