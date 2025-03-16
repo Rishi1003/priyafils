@@ -74,7 +74,7 @@ app.get("/stock-valuation", async (req, res) => {
 
         // Step 5: Extract required values
         const extractedData = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             hdpeGranules: {
                 qty: data[3] && data[3][0] ? data[3][0] : 0,
                 value: data[3] && data[3][2] ? data[3][2] : 0,
@@ -137,13 +137,23 @@ app.get("/stock-valuation", async (req, res) => {
 
         // Step 6: Insert data into StockValuation for each material type
         for (const [key, value] of Object.entries(extractedData)) {
-            if (key !== "timeRecordId") {
-                await prisma.stockValuation.create({
-                    data: {
-                        time_id: timeRecord.id,  // Use `timeRecord.id` as the foreign key
-                        material_type: key,      // The key represents the material type
-                        qty: value.qty,          // Quantity for the material type
-                        value: value.value,      // Value for the material type
+            if (key !== "time_id") {
+                await prisma.stockValuation.upsert({
+                    where: {
+                        time_id_material_type: {  // Composite unique key
+                            time_id: timeRecord.id,
+                            material_type: key,
+                        },
+                    },
+                    update: {
+                        qty: value.qty,      // Update qty if record exists
+                        value: value.value,  // Update value if record exists
+                    },
+                    create: {
+                        time_id: timeRecord.id,  // Create with time_id
+                        material_type: key,      // Create with material_type
+                        qty: value.qty,          // Initial qty
+                        value: value.value,      // Initial value
                     },
                 });
             }
@@ -221,6 +231,12 @@ app.get("/qty-analysis", async (req, res) => {
             closingStock: data[11] && data[11][1] ? data[11][1] : 0,
         };
 
+        await prisma.hDPEStockQtyAnalysis.upsert({
+            where: { time_id: HDPEStockQtyAnalysisData.time_id },
+            update: HDPEStockQtyAnalysisData,
+            create: HDPEStockQtyAnalysisData,
+        });
+
         console.log('📊 Extracted HDPEStockQtyAnalysis Data:', HDPEStockQtyAnalysisData);
 
         const MBStockQtyAnalysis = {
@@ -236,6 +252,12 @@ app.get("/qty-analysis", async (req, res) => {
             closingStock: data[21] && data[21][1] ? data[21][1] : 0,
         };
 
+        await prisma.mBStockQtyAnalysis.upsert({
+            where: { time_id: MBStockQtyAnalysis.time_id },
+            update: MBStockQtyAnalysis,
+            create: MBStockQtyAnalysis,
+        });
+
         console.log('📊 Extracted MBStockQtyAnalysis Data:', MBStockQtyAnalysis);
 
         const CPStockData = {
@@ -249,6 +271,12 @@ app.get("/qty-analysis", async (req, res) => {
             consumption: data[29] && data[29][1] ? data[29][1] : 0,
             closingStock: data[30] && data[30][1] ? data[30][1] : 0,
         };
+
+        await prisma.CPStock.upsert({
+            where: { time_id: CPStockData.time_id },
+            update: CPStockData,
+            create: CPStockData,
+        });
 
         console.log('📊 Extracted CPStock Data:', CPStockData);
 
@@ -264,6 +292,12 @@ app.get("/qty-analysis", async (req, res) => {
             wastage: data[43] && data[43][1] ? data[43][1] : 0,
             wastagePercentage: data[44] && data[44][1] ? data[44][1] * 100 : 0,
         }
+
+        await prisma.wastageComputationQtyAnalysis.upsert({
+            where: { time_id: WastageComputationData.time_id },
+            update: WastageComputationData,
+            create: WastageComputationData,
+        });
 
         console.log("Extracted WastageComputation Data: ", WastageComputationData);
 
@@ -281,6 +315,12 @@ app.get("/qty-analysis", async (req, res) => {
             closingBalance: data[56] && data[56][1] ? data[56][1] : 0
         }
 
+        await prisma.hDPEMonofilamentFactoryQtyAnalysis.upsert({
+            where: { time_id: HDPEMonofilamentFactoryData.time_id },
+            update: HDPEMonofilamentFactoryData,
+            create: HDPEMonofilamentFactoryData,
+        });
+
         console.log("Extracted HDPEMonofilamentFactory Data: ", HDPEMonofilamentFactoryData);
 
         const HDPEMonofilamentFabricatorData = {
@@ -288,7 +328,7 @@ app.get("/qty-analysis", async (req, res) => {
             openingBalance: data[58] && data[58][1] ? data[58][1] : 0,
             hdpeMonofilamentReceipt: data[59] && data[59][1] ? data[59][1] : 0,
             total: data[60] && data[60][1] ? data[60][1] : 0,
-            hdpeWovenFabric: data[62] && data[62][1] ? data[62][1] : 0,
+            hdpeWovenFabrics: data[62] && data[62][1] ? data[62][1] : 0,
             hdpeWovenFabricsRF: data[63] && data[63][1] ? data[63][1] : 0,
             hdpeWovenFabricsSec: data[64] && data[64][1] ? data[64][1] : 0,
             waste: data[65] && data[65][1] ? data[65][1] : 0,
@@ -297,6 +337,12 @@ app.get("/qty-analysis", async (req, res) => {
             wastePercentage: data[68] && data[68][1] ? data[68][1] * 100 : 0,
             closingBalance: data[69] && data[69][1] ? data[69][1] : 0
         }
+
+        await prisma.hDPEMonofilamentFabricatorQtyAnalysis.upsert({
+            where: { time_id: HDPEMonofilamentFabricatorData.time_id },
+            update: HDPEMonofilamentFabricatorData,
+            create: HDPEMonofilamentFabricatorData,
+        });
 
         console.log("Extracted HDPEMonofilamentFabricator Data: ", HDPEMonofilamentFabricatorData);
 
@@ -313,12 +359,18 @@ app.get("/qty-analysis", async (req, res) => {
             closingBalance: data[82] && data[82][1] ? data[82][1] : 0
         }
 
+        await prisma.hDPEWovenFabricQtyAnalysis.upsert({
+            where: { time_id: HDPEWovenFabircData.time_id },
+            update: HDPEWovenFabircData,
+            create: HDPEWovenFabircData,
+        });
+
         console.log("Extracted HDPEWovenFabirc Data: ", HDPEWovenFabircData);
 
         const ShadeNetsTradingData = {
             time_id: timeRecord.id,
             openingBalance: data[84] && data[84][1] ? data[84][1] : 0,
-            receiptsTapeShadePurchases: data[85] && data[85][1] ? data[85][1] : 0,
+            receiptsTapeShadePurchase: data[85] && data[85][1] ? data[85][1] : 0,
             receiptsTSNJobWork: data[86] && data[86][1] ? data[86][1] : 0,
             receiptsMonoShade: data[87] && data[87][1] ? data[87][1] : 0,
             receiptsWeedMat: data[88] && data[88][1] ? data[88][1] : 0,
@@ -337,6 +389,12 @@ app.get("/qty-analysis", async (req, res) => {
             closingBalance: data[101] && data[101][1] ? data[101][1] : 0
         }
 
+        await prisma.shadeNetsTradingQtyAnalysis.upsert({
+            where: { time_id: ShadeNetsTradingData.time_id },
+            update: ShadeNetsTradingData,
+            create: ShadeNetsTradingData,
+        });
+
         console.log("Extracted ShadeNetsTrading Data: ", ShadeNetsTradingData);
 
         const wasteQtyAnalysis = {
@@ -348,6 +406,12 @@ app.get("/qty-analysis", async (req, res) => {
             sales: data[109] && data[109][1] ? data[109][1] : 0,
             closingBalance: data[110] && data[110][1] ? data[110][1] : 0
         }
+
+        await prisma.wasteQtyAnalysis.upsert({
+            where: { time_id: wasteQtyAnalysis.time_id },
+            update: wasteQtyAnalysis,
+            create: wasteQtyAnalysis,
+        });
 
         console.log("Extracted wasteQtyAnalysis Data: ", wasteQtyAnalysis);
 
@@ -362,6 +426,12 @@ app.get("/qty-analysis", async (req, res) => {
             waste: data[118] && data[118][1] ? data[118][1] : 0,
             wastePercentage: data[119] && data[119][1] ? data[119][1] * 100 : 0,
         }
+
+        await prisma.ConsolidatedQtyAnalysis.upsert({
+            where: { time_id: consolidatedStockQtyAnalysis.time_id },
+            update: consolidatedStockQtyAnalysis,
+            create: consolidatedStockQtyAnalysis,
+        });
 
         console.log("Extracted consolidatedStockQtyAnalysis Data: ", consolidatedStockQtyAnalysis);
 
@@ -379,7 +449,15 @@ app.get("/qty-analysis", async (req, res) => {
             wastePercentage: data[130] && data[130][1] ? data[130][1] * 100 : 0,
         }
 
+        await prisma.rMSFGFGSeparatedQtyAnalysis.upsert({
+            where: { time_id: RMSFGseperated.time_id },
+            update: RMSFGseperated,
+            create: RMSFGseperated,
+        });
+
         console.log("Extracted RMSFGseperated Data: ", RMSFGseperated);
+
+        return res.json({ message: 'Data extracted and added successfully for qty analysis' });
 
     } catch (error) {
         console.error('❌ Error:', error);
@@ -440,116 +518,202 @@ app.get("/purchase", async (req, res) => {
 
         // Step 5: Extract required values
         const hdpePurchaseData = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][1] ? data[2][1] : 0,
             value: data[2] && data[2][2] ? data[2][2] : 0,
         };
 
+        await prisma.hdpePurchase.upsert({
+            where: { time_id: hdpePurchaseData.time_id },
+            update: hdpePurchaseData,
+            create: hdpePurchaseData,
+        });
+
         console.log('📊 Extracted HDPEPurchase Data:', hdpePurchaseData);
 
         const MBPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][4] ? data[2][4] : 0,
             value: data[2] && data[2][5] ? data[2][5] : 0,
         };
 
+        await prisma.mBPurchase.upsert({
+            where: { time_id: MBPurchase.time_id },
+            update: MBPurchase,
+            create: MBPurchase,
+        });
+
         console.log('📊 Extracted MBPurchase Data:', MBPurchase);
 
         const CPPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][7] ? data[2][7] : 0,
             value: data[2] && data[2][8] ? data[2][8] : 0,
         };
 
+        await prisma.cPPurchase.upsert({
+            where: { time_id: CPPurchase.time_id },
+            update: CPPurchase,
+            create: CPPurchase,
+        });
+
         console.log('📊 Extracted CPPurchase Data:', CPPurchase);
 
         const ConsumablesPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             value: data[2] && data[2][14] ? data[2][14] : 0,
             discount: data[2] && data[2][13] ? data[2][13] : 0,
         };
 
+        await prisma.consumablesPurchase.upsert({
+            where: { time_id: ConsumablesPurchase.time_id },
+            update: ConsumablesPurchase,
+            create: ConsumablesPurchase,
+        });
+
         console.log('📊 Extracted ConsumablesPurchase Data:', ConsumablesPurchase);
 
         const TSNPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][16] ? data[2][16] : 0,
             value: data[2] && data[2][17] ? data[2][17] : 0,
         };
 
+        await prisma.tSNPurchase.upsert({
+            where: { time_id: TSNPurchase.time_id },
+            update: TSNPurchase,
+            create: TSNPurchase,
+        });
+
         console.log('📊 Extracted TSNPurchase Data:', TSNPurchase);
 
         const MSNPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][19] ? data[2][19] : 0,
             value: data[2] && data[2][20] ? data[2][20] : 0,
         };
 
+        await prisma.mSNPurchase.upsert({
+            where: { time_id: MSNPurchase.time_id },
+            update: MSNPurchase,
+            create: MSNPurchase,
+        });
+
         console.log('📊 Extracted MSNPurchase Data:', MSNPurchase);
 
         const PPSPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][22] ? data[2][22] : 0,
             value: data[2] && data[2][23] ? data[2][23] : 0,
         };
 
+        await prisma.pPSPurchase.upsert({
+            where: { time_id: PPSPurchase.time_id },
+            update: PPSPurchase,
+            create: PPSPurchase,
+        });
+
         console.log('📊 Extracted PPSPurchase Data:', PPSPurchase);
 
         const TotalPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][25] ? data[2][25] : 0,
             value: data[2] && data[2][26] ? data[2][26] : 0,
         };
 
+        await prisma.totalPurchase.upsert({
+            where: { time_id: TotalPurchase.time_id },
+            update: TotalPurchase,
+            create: TotalPurchase,
+        });
+
         console.log('📊 Extracted TotalPurchase Data:', TotalPurchase);
 
         const SravyaOthersData = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][28] ? data[2][28] : 0,
             value: data[2] && data[2][29] ? data[2][29] : 0,
         };
 
+        await prisma.sravyaOthersPurchase.upsert({
+            where: { time_id: SravyaOthersData.time_id },
+            update: SravyaOthersData,
+            create: SravyaOthersData,
+        });
+
         console.log('📊 Extracted SravyaOthers Data:', SravyaOthersData);
 
         const YarnPurchase = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][31] ? data[2][31] : 0,
             value: data[2] && data[2][32] ? data[2][32] : 0,
         };
 
+        await prisma.yarnPurchase.upsert({
+            where: { time_id: YarnPurchase.time_id },
+            update: YarnPurchase,
+            create: YarnPurchase,
+        });
+
         console.log('📊 Extracted YarnPurchase Data:', YarnPurchase);
 
         const TSNRMConsumedData = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][34] ? data[2][34] : 0,
             value: data[2] && data[2][35] ? data[2][35] : 0,
         };
 
+        await prisma.tSNRMConsumedPurchase.upsert({
+            where: { time_id: TSNRMConsumedData.time_id },
+            update: TSNRMConsumedData,
+            create: TSNRMConsumedData,
+        });
+
         console.log('📊 Extracted TSNRMConsumed Data:', TSNRMConsumedData);
 
         const TSNConsumedData = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][37] ? data[2][37] : 0,
             value: data[2] && data[2][38] ? data[2][38] : 0,
         };
 
+        await prisma.tSNConsumedPurchase.upsert({
+            where: { time_id: TSNConsumedData.time_id },
+            update: TSNConsumedData,
+            create: TSNConsumedData,
+        });
+
         console.log('📊 Extracted TSNConsumed Data:', TSNConsumedData);
 
         const TSNTotalRMConsumedData = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][40] ? data[2][40] : 0,
             value: data[2] && data[2][41] ? data[2][41] : 0,
         };
 
+        await prisma.tSNTotalRMConsumedPurchase.upsert({
+            where: { time_id: TSNTotalRMConsumedData.time_id },
+            update: TSNTotalRMConsumedData,
+            create: TSNTotalRMConsumedData,
+        });
+
         console.log('📊 Extracted TSNTotalRMConsumed Data:', TSNTotalRMConsumedData);
 
         const TRDNGPurchaseData = {
-            timeRecordId: timeRecord.id, // Corrected to use `timeRecord.id` here
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
             kgs: data[2] && data[2][43] ? data[2][43] : 0,
             value: data[2] && data[2][44] ? data[2][44] : 0,
         };
 
+        await prisma.tRDNGPurchase.upsert({
+            where: { time_id: TRDNGPurchaseData.time_id },
+            update: TRDNGPurchaseData,
+            create: TRDNGPurchaseData,
+        });
+
         console.log('📊 Extracted TRDNGPurchase Data:', TRDNGPurchaseData);
+
+        return res.send({ message: 'Data extracted and added successfully for purchase' });
 
     } catch (error) {
         console.error('❌ Error:', error);
@@ -581,6 +745,7 @@ app.get("/inventory-details", async (req, res) => {
         // Extract date from the first row, first column
         const rawDate = data[0][1]; // First row, first column
         console.log("📅 Raw Date:", rawDate);
+        // const parsedDate = parseExcelDate(rawDate);
         const parsedDate = parseExcelDate(rawDate);
 
         if (isNaN(parsedDate)) {
@@ -629,8 +794,8 @@ app.get("/inventory-details", async (req, res) => {
 
             inventoryMaterial.push({
                 time_id: timeRecord.id,
-                material_type: material,
-                outward: outward,
+                materialName: material,
+                outwardQty: outward,
                 amount: amount
             });
 
@@ -653,8 +818,8 @@ app.get("/inventory-details", async (req, res) => {
 
             inventoryMaterial.push({
                 time_id: timeRecord.id,
-                material_type: material,
-                outward: outward,
+                materialName: material,
+                outwardQty: outward,
                 amount: amount
             });
 
@@ -677,13 +842,39 @@ app.get("/inventory-details", async (req, res) => {
 
             inventoryMaterial.push({
                 time_id: timeRecord.id,
-                material_type: material,
-                outward: outward,
+                materialName: material,
+                outwardQty: outward,
                 amount: amount
             });
 
             console.log(`📊 Extracted ${material} Data:`, { outward, amount });
         });
+
+
+        for (const item of inventoryMaterial) {
+            await prisma.inventoryDetails.upsert({
+                where: {
+                    time_id_materialName: { // Composite unique key
+                        time_id: item.time_id,
+                        materialName: item.materialName,
+                    },
+                },
+                update: {
+                    outwardQty: item.outwardQty, // Update quantity if record exists
+                    amount: item.amount,         // Update amount if record exists
+                },
+                create: {
+                    time_id: item.time_id,       // Create with time_id
+                    materialName: item.materialName, // Create with materialName
+                    outwardQty: item.outwardQty,     // Initial quantity
+                    amount: item.amount,             // Initial amount
+                },
+            });
+        }
+
+
+
+        console.log("📊 Extracted Inventory Material Data: ", inventoryMaterial);
 
         const salesDetails = {
             time_id: timeRecord.id,
@@ -699,8 +890,15 @@ app.get("/inventory-details", async (req, res) => {
             RMPurchaseForSales: data[38] && data[38][3] ? data[38][3] : 0,
         }
 
+        await prisma.salesDetails.upsert({
+            where: { time_id: salesDetails.time_id },
+            update: salesDetails,
+            create: salesDetails,
+        });
+
         console.log("📊 Extracted Sales Details: ", salesDetails);
 
+        return res.json({ message: 'Data extracted and added successfully for inventory details' });
 
 
     } catch (error) {
@@ -782,10 +980,16 @@ app.get("/direct-expenses", async (req, res) => {
             yarnProcessing: data[18] && data[18][1] ? data[18][1] : 0,
         };
 
+        await prisma.manufacturingExpensesDirectExpenses.upsert({
+            where: { time_id: manufacturingExpensesData.time_id },
+            update: manufacturingExpensesData,
+            create: manufacturingExpensesData,
+        });
+
         console.log('📊 Extracted Manufacturing Expenses Data:', manufacturingExpensesData);
 
         const extrasManufacturingData = {
-            timeId: timeRecord.id,
+            time_id: timeRecord.id,
             manufacturing: data[22] && data[22][1] ? data[22][1] : 0,
             itcReserved: data[23] && data[23][1] ? data[23][1] : 0,
             inHouseFabrication: data[24] && data[24][1] ? data[24][1] : 0,
@@ -803,11 +1007,17 @@ app.get("/direct-expenses", async (req, res) => {
             PnL: data[37] && data[37][1] ? data[37][1] : 0
         }
 
+        await prisma.extrasManaufacturingDirectExpenses.upsert({
+            where: { time_id: extrasManufacturingData.time_id },
+            update: extrasManufacturingData,
+            create: extrasManufacturingData,
+        });
+
         console.log('📊 Extracted Extras Manufacturing Data:', extrasManufacturingData);
 
 
         const variableAndDirectData = {
-            timeId: timeRecord.id,
+            time_id: timeRecord.id,
             wagesFabric: data[1] && data[1][4] ? data[1][4] : 0,
             wagesInspectionDispatch: data[2] && data[2][4] ? data[2][4] : 0,
             fabricationCharges: data[3] && data[3][4] ? data[3][4] : 0,
@@ -825,10 +1035,16 @@ app.get("/direct-expenses", async (req, res) => {
             workingCapitalOcc: data[16] && data[16][4] ? data[16][4] : 0,
         }
 
+        await prisma.variableAndDirect.upsert({
+            where: { time_id: variableAndDirectData.time_id },
+            update: variableAndDirectData,
+            create: variableAndDirectData,
+        });
+
         console.log('📊 Extracted Variable and Direct Data:', variableAndDirectData);
 
         const fixedExpensesData = {
-            timeId: timeRecord.id,
+            time_id: timeRecord.id,
             employeesWelfareExp: data[21] && data[21][4] ? data[21][4] : 0,
             salariesOffice: data[22] && data[22][4] ? data[22][4] : 0,
             directorsRemuneration: data[23] && data[23][4] ? data[23][4] : 0,
@@ -839,9 +1055,15 @@ app.get("/direct-expenses", async (req, res) => {
             financeCostIntOnDeposits: data[28] && data[28][4] ? data[28][4] : 0
         }
 
+        await prisma.fixedExpenses.upsert({
+            where: { time_id: fixedExpensesData.time_id },
+            update: fixedExpensesData,
+            create: fixedExpensesData,
+        });
+
         console.log('📊 Extracted Fixed Expenses Data:', fixedExpensesData);
 
-        return res.json({ message: 'Expenses data extracted and added successfully', data: manufacturingExpensesData });
+        return res.json({ message: 'Expenses data extracted and added successfully' });
     } catch (error) {
         console.error('❌ Error:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
@@ -902,43 +1124,43 @@ app.get("/indirect-expenses", async (req, res) => {
         const administrativeExpenses = {
             time_id: timeRecord.id, // Using `timeRecord.id` as provided
             // Mapping expenses from the image to data array indices (starting from index 2)
-            vehicleFourWheelersExpenses: data[2] && data[2][1] ? data[2][1] : 0, 
-            installationProgrammingCharges: data[3] && data[3][1] ? data[3][1] : 0, 
-            arrearsOfTax: data[4] && data[4][1] ? data[4][1] : 0,  
-            auditFees: data[5] && data[5][1] ? data[5][1] : 0,  
-            booksPeriodical: data[6] && data[6][1] ? data[6][1] : 0,  
-            buildingRepairMaintenanceExp: data[7] && data[7][1] ? data[7][1] : 0, 
-            computerStoresMaint: data[8] && data[8][1] ? data[8][1] : 0,  
-            conveyanceCharges: data[9] && data[9][1] ? data[9][1] : 0,  
-            goldenJubileeCelebrationExps: data[10] && data[10][1] ? data[10][1] : 0,  
-            donation: data[11] && data[11][1] ? data[11][1] : 0, 
-            generalExpenses: data[12] && data[12][1] ? data[12][1] : 0,  
-            generalRepairMaintainance:data[13] && data[13][1] ? data[13][1] : 0,
-            auditFeesGST: data[14] && data[14][1] ? data[14][1] : 0, 
-            incomeTaxExps: data[15] && data[15][1] ? data[15][1] : 0,  
-            medicalExps: data[16] && data[16][1] ? data[16][1] : 0, 
-            medicalclaimExps:data[17] && data[17][1] ? data[17][1] : 0, 
-            officeMaintenance: data[18] && data[18][1] ? data[18][1] : 0,  
-            poojaExpenses: data[19] && data[19][1] ? data[19][1] : 0,  
-            postageTelTelexCharges: data[20] && data[20][1] ? data[20][1] : 0,  
-            printingStationary: data[21] && data[21][1] ? data[21][1] : 0,  
-            professionalCharges:data[22] && data[22][1] ? data[22][1] : 0,
-            professionalConsultationCharges: data[23] && data[23][1] ? data[23][1] : 0,  
-            ratesTaxes:data[24] && data[24][1] ? data[24][1] : 0,  
-            registrationRenewal:  data[25] && data[25][1] ? data[25][1] : 0, 
-            repairsServiceCharges:data[26] && data[26][1] ? data[26][1] : 0,   
-            freightCharges: data[27] && data[27][1] ? data[27][1] : 0,   
-            roundOff:data[28] && data[28][1] ? data[28][1] : 0,  
-            seminarTrainingDvtExp:data[29] && data[29][1] ? data[29][1] : 0,  
-            softwareMaintenance:  data[30] && data[30][1] ? data[30][1] : 0,  
-            serviceCharges: data[31] && data[31][1] ? data[31][1] : 0, 
-            subscriptionMembership:data[32] && data[32][1] ? data[32][1] : 0,  
-            tdsInterestOnTDS:data[33] && data[33][1] ? data[33][1] : 0,  
-            telephoneChargesAirtel: data[34] && data[34][1] ? data[34][1] : 0, 
-            telephoneChargesBSNL: data[35] && data[35][1] ? data[35][1] : 0, 
-            fluctuationInForeignCurrency:data[36] && data[36][1] ? data[36][1] : 0, 
-            VehicleMaintainance:data[37] && data[37][1] ? data[37][1] : 0,  
-            WatchWard: data[38] && data[38][1] ? data[38][1] : 0, 
+            vehicleFourWheelersExpenses: data[2] && data[2][1] ? data[2][1] : 0,
+            installationProgrammingCharges: data[3] && data[3][1] ? data[3][1] : 0,
+            arrearsOfTax: data[4] && data[4][1] ? data[4][1] : 0,
+            auditFees: data[5] && data[5][1] ? data[5][1] : 0,
+            booksPeriodical: data[6] && data[6][1] ? data[6][1] : 0,
+            buildingRepairMaintenanceExp: data[7] && data[7][1] ? data[7][1] : 0,
+            computerStoresMaint: data[8] && data[8][1] ? data[8][1] : 0,
+            conveyanceCharges: data[9] && data[9][1] ? data[9][1] : 0,
+            goldenJubileeCelebrationExps: data[10] && data[10][1] ? data[10][1] : 0,
+            donation: data[11] && data[11][1] ? data[11][1] : 0,
+            generalExpenses: data[12] && data[12][1] ? data[12][1] : 0,
+            generalRepairMaintainance: data[13] && data[13][1] ? data[13][1] : 0,
+            auditFeesGST: data[14] && data[14][1] ? data[14][1] : 0,
+            incomeTaxExps: data[15] && data[15][1] ? data[15][1] : 0,
+            medicalExps: data[16] && data[16][1] ? data[16][1] : 0,
+            medicalclaimExps: data[17] && data[17][1] ? data[17][1] : 0,
+            officeMaintenance: data[18] && data[18][1] ? data[18][1] : 0,
+            poojaExpenses: data[19] && data[19][1] ? data[19][1] : 0,
+            postageTelTelexCharges: data[20] && data[20][1] ? data[20][1] : 0,
+            printingStationary: data[21] && data[21][1] ? data[21][1] : 0,
+            professionalCharges: data[22] && data[22][1] ? data[22][1] : 0,
+            professionalConsultationCharges: data[23] && data[23][1] ? data[23][1] : 0,
+            ratesTaxes: data[24] && data[24][1] ? data[24][1] : 0,
+            registrationRenewal: data[25] && data[25][1] ? data[25][1] : 0,
+            repairsServiceCharges: data[26] && data[26][1] ? data[26][1] : 0,
+            freightCharges: data[27] && data[27][1] ? data[27][1] : 0,
+            roundOff: data[28] && data[28][1] ? data[28][1] : 0,
+            seminarTrainingDvtExp: data[29] && data[29][1] ? data[29][1] : 0,
+            softwareMaintenance: data[30] && data[30][1] ? data[30][1] : 0,
+            serviceCharges: data[31] && data[31][1] ? data[31][1] : 0,
+            subscriptionMembership: data[32] && data[32][1] ? data[32][1] : 0,
+            tdsInterestOnTDS: data[33] && data[33][1] ? data[33][1] : 0,
+            telephoneChargesAirtel: data[34] && data[34][1] ? data[34][1] : 0,
+            telephoneChargesBSNL: data[35] && data[35][1] ? data[35][1] : 0,
+            fluctuationInForeignCurrency: data[36] && data[36][1] ? data[36][1] : 0,
+            VehicleMaintainance: data[37] && data[37][1] ? data[37][1] : 0,
+            WatchWard: data[38] && data[38][1] ? data[38][1] : 0,
         };
 
         console.log('📊 Extracted Administrative Expenses Expenses Data:', administrativeExpenses);
@@ -956,7 +1178,7 @@ app.get("/indirect-expenses", async (req, res) => {
             InterestToOthersVSL: data[48] && data[48][1] ? data[48][1] : 0,
             InterestToDepositors: data[49] && data[49][1] ? data[49][1] : 0,
         };
-        
+
         console.log('📊 Extracted Financial Expenses Data:', FinancialExpenses);
 
 
@@ -975,7 +1197,7 @@ app.get("/indirect-expenses", async (req, res) => {
             DiscountAllowed: data[61] && data[61][1] ? data[61][1] : 0,
             Discount: data[62] && data[62][1] ? data[62][1] : 0,
         };
-        
+
         console.log('📊 Extracted Selling Expenses Data:', SellingExpenses);
 
 

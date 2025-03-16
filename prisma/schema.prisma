@@ -25,12 +25,13 @@ model StockValuation {
   qty           Float
   value         Float
 
+  @@unique([time_id, material_type])
   @@map("stock_valuation")
 }
 
 model HDPEStockQtyAnalysis {
   id                  Int   @id @default(autoincrement())
-  time_id             Int
+  time_id             Int   @unique
   openingStock        Float
   purchases           Float
   jobWorkReceipts     Float
@@ -44,7 +45,7 @@ model HDPEStockQtyAnalysis {
 
 model MBStockQtyAnalysis {
   id                       Int   @id @default(autoincrement())
-  time_id                  Int
+  time_id                  Int   @unique
   openingStock             Float
   purchases                Float
   purchaseReturn           Float
@@ -58,7 +59,7 @@ model MBStockQtyAnalysis {
 
 model CPStock {
   id                  Int   @id @default(autoincrement())
-  time_id             Int
+  time_id             Int   @unique
   openingStock        Float
   purchases           Float
   purchaseReturn      Float
@@ -71,7 +72,7 @@ model CPStock {
 
 model WastageComputationQtyAnalysis {
   id                  Int   @id @default(autoincrement())
-  time_id             Int
+  time_id             Int   @unique
   consumptionMonofil  Float
   consumptionShadeNet Float
   consumptionPPFabric Float
@@ -85,7 +86,7 @@ model WastageComputationQtyAnalysis {
 
 model HDPEMonofilamentFactoryQtyAnalysis {
   id                Int   @id @default(autoincrement())
-  time_id           Int
+  time_id           Int   @unique
   openingBalance    Float
   production        Float
   jobWorkProduction Float
@@ -100,7 +101,7 @@ model HDPEMonofilamentFactoryQtyAnalysis {
 
 model HDPEMonofilamentFabricatorQtyAnalysis {
   id                      Int   @id @default(autoincrement())
-  time_id                 Int
+  time_id                 Int   @unique
   openingBalance          Float
   hdpeMonofilamentReceipt Float
   total                   Float
@@ -116,7 +117,7 @@ model HDPEMonofilamentFabricatorQtyAnalysis {
 
 model HDPEWovenFabricQtyAnalysis {
   id                      Int   @id @default(autoincrement())
-  time_id                 Int
+  time_id                 Int   @unique
   openingBalance          Float
   production              Float
   purchases               Float
@@ -130,7 +131,7 @@ model HDPEWovenFabricQtyAnalysis {
 
 model ShadeNetsTradingQtyAnalysis {
   id                        Int   @id @default(autoincrement())
-  time_id                   Int
+  time_id                   Int   @unique
   openingBalance            Float
   receiptsTapeShadePurchase Float
   receiptsTSNJobWork        Float
@@ -153,7 +154,7 @@ model ShadeNetsTradingQtyAnalysis {
 
 model WasteQtyAnalysis {
   id                  Int   @id @default(autoincrement())
-  time_id             Int
+  time_id             Int   @unique
   openingBalance      Float
   receipts            Float
   issuedForProcessing Float
@@ -164,7 +165,7 @@ model WasteQtyAnalysis {
 
 model ConsolidatedQtyAnalysis {
   id              Int   @id @default(autoincrement())
-  time_id         Int
+  time_id         Int   @unique
   openingStock    Float
   purchases       Float
   totalStock      Float
@@ -177,7 +178,7 @@ model ConsolidatedQtyAnalysis {
 
 model RMSFGFGSeparatedQtyAnalysis {
   id                      Int   @id @default(autoincrement())
-  time_id                 Int
+  time_id                 Int   @unique
   openingStockRM          Float
   purchases               Float
   totalStock              Float
@@ -194,98 +195,98 @@ model RMSFGFGSeparatedQtyAnalysis {
 
 model hdpePurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model MBPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model CPPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model ConsumablesPurchase {
   id       Int   @id @default(autoincrement())
-  time_id  Int
+  time_id  Int   @unique
   value    Float
   discount Float
 }
 
 model TSNPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model MSNPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model PPSPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model TotalPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model SravyaOthersPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model YarnPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model TSNRMConsumedPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model TSNConsumedPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model TSNTotalRMConsumedPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
 
 model TRDNGPurchase {
   id      Int   @id @default(autoincrement())
-  time_id Int
+  time_id Int   @unique
   kgs     Float
   value   Float
 }
@@ -298,11 +299,13 @@ model inventoryDetails {
   materialName String
   outwardQty   Float
   amount       Float
+
+  @@unique([time_id, materialName])
 }
 
 model salesDetails {
   id                 Int   @id @default(autoincrement())
-  time_id            Int
+  time_id            Int   @unique
   grandTotalValue    Float
   grandTotalOutward  Float
   otherIncome        Float
@@ -319,7 +322,7 @@ model salesDetails {
 
 model manufacturingExpensesDirectExpenses {
   id                         Int   @id @default(autoincrement())
-  timeId                     Int
+  time_id                    Int   @unique
   employeeRemuneration       Float
   coolieCartage              Float
   depreciation               Float
@@ -341,7 +344,7 @@ model manufacturingExpensesDirectExpenses {
 
 model extrasManaufacturingDirectExpenses {
   id                 Int   @id @default(autoincrement())
-  timeId             Int
+  time_id            Int   @unique
   manufacturing      Float
   itcReserved        Float
   inHouseFabrication Float
@@ -361,7 +364,7 @@ model extrasManaufacturingDirectExpenses {
 
 model variableAndDirect {
   id                        Int   @id @default(autoincrement())
-  timeId                    Int
+  time_id                   Int   @unique
   wagesFabric               Float
   wagesInspectionDispatch   Float
   fabricationCharges        Float
@@ -381,7 +384,7 @@ model variableAndDirect {
 
 model fixedExpenses {
   id                       Int   @id @default(autoincrement())
-  timeId                   Int
+  time_id                  Int   @unique
   employeesWelfareExp      Float
   salariesOffice           Float
   directorsRemuneration    Float
@@ -396,7 +399,7 @@ model fixedExpenses {
 
 model AdministrativeExpense {
   id                              Int   @id @default(autoincrement())
-  timeId                          Int
+  time_id                         Int   @unique
   vehicleFourWheelersExpenses     Float
   installationProgrammingCharges  Float
   arrearsOfTax                    Float
@@ -439,7 +442,7 @@ model AdministrativeExpense {
 // Model for FinancialExpenses JSON
 model FinancialExpense {
   id                              Int   @id @default(autoincrement())
-  timeId                          Int
+  time_id                         Int   @unique
   BankCharges                     Float
   InterestAndBankChargesILC       Float
   InterestOnUnsecuredLoansMonthly Float
@@ -455,7 +458,7 @@ model FinancialExpense {
 // Model for SellingExpenses JSON
 model SellingExpense {
   id                          Int   @id @default(autoincrement())
-  timeId                      Int
+  time_id                     Int   @unique
   Advertisement               Float
   AdvertisementBadDebts       Float
   CommissionOnSales           Float
