@@ -6,7 +6,6 @@ import { PrismaClient } from '@prisma/client';
 
 
 import { parseExcelDate } from './utils.js';
-import { time } from 'console';
 
 
 
@@ -14,8 +13,15 @@ import { time } from 'console';
 
 
 const app = express();
-const port = process.env.PORT || 3000;
-const prisma = new PrismaClient();
+const port = process.env.PORT || 3001;
+
+let prisma;
+try {
+    prisma = new PrismaClient();
+} catch (error) {
+    console.error('Error initializing Prisma Client:', error);
+    process.exit(1); // Exit the process if Prisma Client fails to initialize
+}
 
 
 app.get("/", (req, res) => {
@@ -1119,13 +1125,16 @@ app.get("/indirect-expenses", async (req, res) => {
         const adminExpenses = [];
         const financialExpenses = [];
         const sellingExpenses = [];
+        const totals = [];
         let currentSection = '';
+        let selling = "Selling Expenses"
 
         // Start from row 1 (skip the date row)
         for (let i = 1; i < data.length; i++) {
             const row = data[i];
             const type = row[0]; // First column is the type
             const value = row[1]; // Second column is the value
+
 
             // Skip empty rows
             if (!type) continue;
@@ -1135,10 +1144,12 @@ app.get("/indirect-expenses", async (req, res) => {
                 currentSection = 'admin';
             } else if (type === "Financial Expenses") {
                 currentSection = 'financial';
-            } else if (type === "Selling Expenses") {
+            } else if (type === selling) {
+                console.log(selling)
                 currentSection = 'selling';
+                selling = "1"
             } else if (type === "Grand Total") {
-                break; // Stop at Grand Total
+                currentSection = 'totals';
             } else if (currentSection) {
                 // Add expense to the current section
                 const expense = {
@@ -1148,6 +1159,7 @@ app.get("/indirect-expenses", async (req, res) => {
                 if (currentSection === 'admin') adminExpenses.push(expense);
                 if (currentSection === 'financial') financialExpenses.push(expense);
                 if (currentSection === 'selling') sellingExpenses.push(expense);
+                if (currentSection === 'totals') totals.push(expense);
             }
         }
 
@@ -1221,14 +1233,30 @@ app.get("/indirect-expenses", async (req, res) => {
             console.log('📦 Upserted Selling Expenses to the database');
         }
 
+        if (totals.length > 0) {
+            for (const expense of totals) {
+                await prisma.totals.upsert({
+                    where: {
+                        time_id_type_unique: {
+                            time_id: timeRecord.id,
+                            type: expense.type
+                        }
+                    },
+                    update: {
+                        value: expense.value
+                    },
+                    create: {
+                        time_id: timeRecord.id,
+                        type: expense.type,
+                        value: expense.value
+                    }
+                });
+            }
+        }
+
         // Step 7: Return the response
         return res.json({
             message: 'Expenses data extracted and added successfully',
-            // data: {
-            //     administrativeExpenses: adminExpenses,
-            //     financialExpenses: financialExpenses,
-            //     sellingExpenses: sellingExpenses
-            // }
         });
     } catch (error) {
         console.error('❌ Error:', error);
@@ -1237,6 +1265,550 @@ app.get("/indirect-expenses", async (req, res) => {
 });
 
 
+
+//output files routes
+
+app.get("/cogs", async (req, res) => {
+
+    try {
+
+        const month = req.query.month
+
+        const date = parseExcelDate(month);
+
+        const timeRecord = await prisma.timeRecord.findUnique({
+            where: {
+                time: date,
+            },
+        });
+
+        if (!timeRecord) {
+            return res.status(404).json({ message: 'Time record not found for the given date' });
+        }
+
+        const oneMonthBackRecord = await prisma.timeRecord.findFirst({
+            where: {
+                time: new Date(date.setMonth(date.getMonth() - 1)),
+            }
+        });
+
+        if (!oneMonthBackRecord) {
+            return res.status(404).json({ message: 'Time record not found for the previous month' });
+        }
+
+
+
+        const stockValuation = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+            }
+        });
+
+
+        const purchaseData = await prisma.hdpePurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+
+        const inventoryDetails = await prisma.inventoryDetails.findMany({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "Raw Material"
+            }
+        });
+
+        const salesDetails = await prisma.salesDetails.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            }
+        });
+
+        console.log('📊 Shadenet and PP Fabric:', salesDetails);
+
+
+        const purchaseDiscount = await prisma.ConsumablesPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+
+
+        const stockValuationNext = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                material_type: "hdpeGranules"
+            }
+        });
+
+        const hdpeCogsData = {
+            openingStock: stockValuation ? stockValuation[0].qty : 0,
+            openingStockValue: stockValuation ? stockValuation[0].value : 0,
+
+            purchaseQty: purchaseData ? purchaseData.kgs : 0,
+            purchaseValue: purchaseDiscount && purchaseData ? purchaseData.value - purchaseDiscount.discount : 0,
+
+            // consumables: dont know where to get data from 
+            // purchaseReturn: dont know where to get data from 
+
+            salesQty: inventoryDetails ? inventoryDetails[0].outwardQty : 0,
+            salesValue: inventoryDetails && salesDetails ? salesDetails.RMPurchaseForSales : 0, // minus some value should be done where to get that value from
+
+            closingStockQty: stockValuationNext ? stockValuationNext[0].qty : 0,
+            closingStockValue: stockValuationNext ? stockValuationNext[0].value : 0,
+
+        }
+
+        console.log('📊 HDPE COGS Data:', hdpeCogsData);
+
+
+        const mBStockData = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                material_type: "masterBatches"
+            }
+        });
+
+        const mBPurchaseData = await prisma.mBPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const mBClosingStockData = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                material_type: "masterBatches"
+            }
+        });
+
+
+        const mdCogsData = {
+            openingStock: mBStockData ? mBStockData[0].qty : 0,
+            openingStockValue: mBStockData ? mBStockData[0].value : 0, //actual value is different from the db value even in the excel the ref is not there
+
+            purchaseQty: mBPurchaseData ? mBPurchaseData.kgs : 0,
+            purchaseValue: mBPurchaseData ? mBPurchaseData.value : 0,
+
+            closingStockQty: mBClosingStockData ? mBClosingStockData[0].qty : 0,
+            closingStockValue: mBClosingStockData ? mBClosingStockData[0].value : 0,
+        }
+
+        console.log('📊 MD COGS Data:', mdCogsData);
+
+        const cpOpeningStockData = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                material_type: "colourPigments"
+            }
+        });
+
+        const cpPurchaseData = await prisma.cPPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const cpClosingStockData = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                material_type: "colourPigments"
+            }
+        });
+
+        const cpCogsData = {
+
+            openingStock: cpOpeningStockData ? cpOpeningStockData[0].qty : 0,
+            openingStockValue: cpOpeningStockData ? cpOpeningStockData[0].value : 0,
+
+            purchaseQty: cpPurchaseData ? cpPurchaseData.kgs : 0,
+            purchaseValue: cpPurchaseData ? cpPurchaseData.value : 0,
+
+            closingStockQty: cpClosingStockData ? cpClosingStockData[0].qty : 0,
+            closingStockValue: cpClosingStockData ? cpClosingStockData[0].value : 0,
+
+        }
+
+        console.log('📊 CP COGS Data:', cpCogsData);
+
+        const rmConsumptionCogsData = {
+            openingStock: (cpCogsData?.openingStock || 0) + (mdCogsData?.openingStock || 0) + (hdpeCogsData?.openingStock || 0),
+            openingStockValue: (cpCogsData?.openingStockValue || 0) + (mdCogsData?.openingStockValue || 0) + (hdpeCogsData?.openingStockValue || 0),
+
+            purchaseQty: (cpCogsData?.purchaseQty || 0) + (mdCogsData?.purchaseQty || 0) + (hdpeCogsData?.purchaseQty || 0),
+            purchaseValue: (cpCogsData?.purchaseValue || 0) + (mdCogsData?.purchaseValue || 0) + (hdpeCogsData?.purchaseValue || 0),
+
+            sales: hdpeCogsData?.salesQty || 0,
+            salesValue: hdpeCogsData?.salesValue || 0,
+
+            closingStock: (cpCogsData?.closingStockQty || 0) + (mdCogsData?.closingStockQty || 0) + (hdpeCogsData?.closingStockQty || 0),
+            closingStockValue: (cpCogsData?.closingStockValue || 0) + (mdCogsData?.closingStockValue || 0) + (hdpeCogsData?.closingStockValue || 0),
+        };
+
+        console.log('📊 RM Consumption COGS Data:', rmConsumptionCogsData);
+
+        const yarnPurchaseData = await prisma.yarnPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const sravyaOthersData = await prisma.sravyaOthersPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const consumablesData = await prisma.ConsumablesPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const monofilCogsData = {
+            yarnPurchases: yarnPurchaseData ? yarnPurchaseData.kgs : 0,
+            yarnValue: yarnPurchaseData ? yarnPurchaseData.value : 0,
+
+            purchaseFabric: sravyaOthersData ? sravyaOthersData.kgs : 0,
+            purchaseFabricValue: sravyaOthersData ? sravyaOthersData.value : 0,
+
+            consumablesPurchase: consumablesData ? consumablesData.value : 0,
+        }
+
+        console.log('📊 Monofilament COGS Data:', monofilCogsData);
+
+        const stockvaluationData = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                material_type: "shadenet_fabrics_weed_mat"
+            }
+        });
+
+
+        //more data needs to come from tradingPL
+        const tradingConsumptionCogsData = {
+            openingStock: stockvaluationData ? stockvaluationData[0].qty : 0,
+        }
+
+        console.log('📊 Trading Consumption COGS Data:', tradingConsumptionCogsData);
+
+
+        const totalCogsDataCOGS = {
+            openingStock: rmConsumptionCogsData.openingStock || 0,  // + monofilCogsData openingstock
+            openingStockValue: rmConsumptionCogsData.openingStockValue || 0, // + monofilCogsData openingstockvalue  
+
+            purchaseHD: hdpeCogsData.purchaseQty || 0,
+            purchaseHDValue: hdpeCogsData.purchaseValue || 0,
+
+            purchaseMD: mdCogsData.purchaseQty || 0,
+            purchaseMDValue: mdCogsData.purchaseValue || 0,
+
+            purchaseMonofil: monofilCogsData.yarnPurchases || 0,
+            purchaseMonofilValue: monofilCogsData.yarnValue || 0,
+
+            // purchaseTrading: tradingConsumptionCogsData.openingStock || 0, // need to get data from tradingPL
+            rmSales: rmConsumptionCogsData.sales || 0,
+            rmSalesValue: rmConsumptionCogsData.salesValue || 0,
+
+            closingStock: rmConsumptionCogsData.closingStock || 0, // + monofilCogsData closingstock
+            closingStockValue: rmConsumptionCogsData.closingStockValue || 0, // + tradingConsumption closingstockvalue  
+        }
+
+        console.log('📊 Total COGS Data:', totalCogsDataCOGS);
+
+        const stockVal = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                AND: {
+                    material_type: {
+                        in: ["hdpe_tape_factory", "hdpe_tape_job_work"]
+                    }
+                }
+            }
+        });
+
+        const stockValFrabric = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                material_type: "hdpe_fishnet_fabrics"
+            }
+        });
+
+        const monofilSFGnFGOpeningStockCOGS = {
+            sfg_yarn: (stockVal[0] ? stockVal[0].qty : 0) + (stockVal[1] ? stockVal[1].qty : 0),
+            sfg_yarn_value: (stockVal[0] ? stockVal[0].value : 0) + (stockVal[1] ? stockVal[1].value : 0),
+
+            fg_fabric: stockValFrabric ? stockValFrabric[0].qty : 0,
+            fg_fabric_value: stockValFrabric ? stockValFrabric[0].value : 0,
+        }
+
+        console.log('📊 monofilSFG openingstock', monofilSFGnFGOpeningStockCOGS);
+
+        const purchaseYarn = await prisma.yarnPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const monofilSFGnFGPurchaseCOGS = {
+
+            sfg_yarn: purchaseYarn ? purchaseYarn.kgs : 0,
+            sfg_yarn_value: purchaseYarn ? purchaseYarn.value : 0,
+
+            fg_fabric: sravyaOthersData ? sravyaOthersData.kgs : 0,
+            fg_fabric_value: sravyaOthersData ? sravyaOthersData.value : 0,
+
+            consumables: consumablesData ? consumablesData.value : 0,
+        }
+
+        console.log('📊 monofilSFG purchase', monofilSFGnFGPurchaseCOGS);
+
+        const stockValClosing = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                AND: {
+                    material_type: {
+                        in: ["hdpe_tape_factory", "hdpe_tape_job_work"]
+                    }
+                }
+            }
+        });
+
+        const stockValFrabricClosing = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                material_type: "hdpe_fishnet_fabrics"
+            }
+        });
+
+        const monogilSFGnFGClosingStockCOGS = {
+            sfg_yarn: (stockValClosing[0] ? stockValClosing[0].qty : 0) + (stockValClosing[1] ? stockValClosing[1].qty : 0),
+            sfg_yarn_value: (stockValClosing[0] ? stockValClosing[0].value : 0) + (stockValClosing[1] ? stockValClosing[1].value : 0),
+
+            fg_fabric: stockValFrabricClosing ? stockValFrabricClosing[0].qty : 0,
+            fg_fabric_value: stockValFrabricClosing ? stockValFrabricClosing[0].value : 0,
+        }
+
+        console.log('📊 monofilSFG closingstock', monogilSFGnFGClosingStockCOGS);
+
+        const stockvalOpening = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                material_type: "shadenet_fabrics_weed_mat"
+            }
+        });
+
+        const stockValClosingStock = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                AND: {
+                    material_type: {
+                        in: ["shadenet_fabrics_weed_mat", "pp_fabric_sacks"]
+                    }
+                }
+            }
+        });
+
+        const tradingCOGS = {
+            openingStock: stockvalOpening ? stockvalOpening[0].qty : 0,
+            openingStockValue: stockvalOpening ? stockvalOpening[0].value : 0,
+
+            closingStock: (stockValClosingStock[0] ? stockValClosingStock[0].qty : 0) + (stockValClosingStock[1] ? stockValClosingStock[1].qty : 0),
+            closingStockValue: (stockValClosingStock[0] ? stockValClosingStock[0].value : 0) + (stockValClosingStock[1] ? stockValClosingStock[1].value : 0),
+        }
+
+        tradingCOGS.difference_stock = Math.abs(tradingCOGS.openingStock - tradingCOGS.closingStock);
+        tradingCOGS.difference_stock_value = Math.abs(tradingCOGS.openingStockValue - tradingCOGS.closingStockValue);
+
+        console.log('📊 Trading COGS', tradingCOGS);
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+
+});
+
+
+app.get("/pal1", async (req, res) => {
+    try {
+        const month = req.query.month
+
+        const date = parseExcelDate(month);
+
+        const timeRecord = await prisma.timeRecord.findUnique({
+            where: {
+                time: date,
+            },
+        });
+
+        if (!timeRecord) {
+            return res.status(404).json({ message: 'Time record not found for the given date' });
+        }
+
+        const oneMonthBackRecord = await prisma.timeRecord.findFirst({
+            where: {
+                time: new Date(date.setMonth(date.getMonth() - 1)),
+            }
+        });
+
+        if (!oneMonthBackRecord) {
+            return res.status(404).json({ message: 'Time record not found for the previous month' });
+        }
+
+        const opstock = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                AND: {
+                    material_type: {
+                        in: ["pp_fabric_sacks", "shadenet_fabrics_weed_mat", "hdpe_fishnet_fabrics", "hdpe_tape_factory", "hdpe_tape_job_work", "hdpeGranules", "masterBatches", "colourPigments"]
+                    }
+                }
+            }
+        });
+
+        const cpPurchase = await prisma.cPPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const mbPurchase = await prisma.mBPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const hdpePurchase = await prisma.hdpePurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const discount = await prisma.ConsumablesPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const purchTrading = await prisma.TRDNGPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const yarnPurch = await prisma.yarnPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const sravyaPurch = await prisma.sravyaOthersPurchase.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const clstock = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                AND: {
+                    material_type: {
+                        in: ["pp_fabric_sacks", "shadenet_fabrics_weed_mat", "hdpe_fishnet_fabrics", "hdpe_tape_factory", "hdpe_tape_job_work", "hdpeGranules", "masterBatches", "colourPigments"]
+                    }
+                }
+            }
+        });
+
+        const sales = await prisma.salesDetails.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const waste = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "HDPE Monofilament Waste"
+            }
+        });
+
+        const palFinal = await prisma.salesDetails.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        })
+
+        const directExpenses = await prisma.extrasManaufacturingDirectExpenses.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            }
+        });
+
+        const indirectExpenses = await prisma.totals.findMany({
+            where: {
+                time_id: timeRecord.id,
+                type: "Indirect COST"
+            }
+        });
+
+        const pal1Data = {
+            openingStock: opstock.reduce((acc, item) => acc + item.qty, 0),
+            openingStockValue: opstock.reduce((acc, item) => acc + item.value, 0),
+
+            purchaseRm: (cpPurchase ? cpPurchase.kgs : 0) + (mbPurchase ? mbPurchase.kgs : 0) + (hdpePurchase ? hdpePurchase.kgs : 0),
+            purchaseRmValue: ((cpPurchase ? cpPurchase.value : 0) + (mbPurchase ? mbPurchase.value : 0) + (hdpePurchase ? hdpePurchase.value : 0)) - (discount ? discount.discount : 0),
+
+            purchaseTrading: purchTrading ? purchTrading.kgs : 0,
+            purchaseTradingValue: purchTrading ? purchTrading.value : 0,
+
+            purchaseConsumables: (yarnPurch ? yarnPurch.kgs : 0) + (sravyaPurch ? sravyaPurch.kgs : 0),
+            purchaseConsumablesValue: (yarnPurch ? yarnPurch.value : 0) + (sravyaPurch ? sravyaPurch.value : 0) + (discount ? discount.value : 0),
+
+            closingStock: clstock.reduce((acc, item) => acc + item.qty, 0),
+            closingStockValue: clstock.reduce((acc, item) => acc + item.value, 0),
+
+            sales: (sales ? sales.grandTotalOutward : 0) - (waste ? waste.outwardQty : 0),
+            salesValue: palFinal ? palFinal.pal1FinalSales : 0,
+
+            waste: waste ? waste.outwardQty : 0,
+            wasteValue: waste ? waste.amount : 0,
+
+            otherInc: palFinal ? palFinal.otherIncome : 0,
+
+            directExpenses: directExpenses ? directExpenses.manufacturing : 0,
+
+            inHouseFabricationQty: directExpenses ? directExpenses.inHouseQty : 0,
+            inHouseFabricationValue: directExpenses ? directExpenses.inHouseFabrication : 0,
+
+            fabricationQty: directExpenses ? directExpenses.fabricators : 0,
+            fabricationValue: directExpenses ? directExpenses.fabrication : 0,
+
+            deprecation: directExpenses ? directExpenses.deprecation : 0,
+
+            indirectExpenses: indirectExpenses[0] ? indirectExpenses[0].value : 0,
+
+        }
+
+        pal1Data.directCost = pal1Data.directExpenses + pal1Data.fabricationValue + pal1Data.inHouseFabricationValue
+        pal1Data.totalCost = pal1Data.directCost + pal1Data.indirectExpenses + pal1Data.deprecation
+
+        const d8 = pal1Data.openingStockValue + pal1Data.purchaseRmValue + pal1Data.purchaseTradingValue + pal1Data.purchaseConsumablesValue;
+        const d10 = d8 - pal1Data.closingStockValue
+        const d12 = pal1Data.salesValue - d10
+
+        const d17 = d12 + pal1Data.wasteValue + pal1Data.otherInc
+
+        console.log('📊 PAL1 Data:', pal1Data);
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+);
 
 const server = app.listen(port, () => {
     console.log(`Server running on ${port}`);

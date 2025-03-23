@@ -29,6 +29,8 @@ model StockValuation {
   @@map("stock_valuation")
 }
 
+// quantity analysis//
+
 model HDPEStockQtyAnalysis {
   id                  Int   @id @default(autoincrement())
   time_id             Int   @unique
@@ -416,6 +418,15 @@ model FinancialExpense {
 }
 
 model SellingExpense {
+  id      Int    @id @default(autoincrement())
+  time_id Int
+  type    String
+  value   Float
+
+  @@unique([time_id, type], name: "time_id_type_unique")
+}
+
+model Totals {
   id      Int    @id @default(autoincrement())
   time_id Int
   type    String
