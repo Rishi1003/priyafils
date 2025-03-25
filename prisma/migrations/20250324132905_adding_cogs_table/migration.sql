@@ -1,0 +1,143 @@
+-- CreateTable
+CREATE TABLE "HdpeCogs" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "openingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "openingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "salesQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "salesValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "HdpeCogs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MdCogs" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "openingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "openingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "MdCogs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CpCogs" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "openingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "openingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "CpCogs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RmConsumptionCogs" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "openingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "openingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseQty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sales" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "salesValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "RmConsumptionCogs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MonofilCogs" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "yarnPurchases" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "yarnValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseFabric" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseFabricValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "consumablesPurchase" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "MonofilCogs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TotalCogs" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "openingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "openingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseHD" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseHDValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseMD" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseMDValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseMonofil" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "purchaseMonofilValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "rmSales" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "rmSalesValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "TotalCogs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MonofilSFGnFGOpeningStock" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "sfg_yarn" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sfg_yarn_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fg_fabric" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fg_fabric_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "MonofilSFGnFGOpeningStock_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MonofilSFGnFGPurchase" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "sfg_yarn" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sfg_yarn_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fg_fabric" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fg_fabric_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "consumables" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "MonofilSFGnFGPurchase_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MonofilSFGnFGClosingStock" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "sfg_yarn" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sfg_yarn_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fg_fabric" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fg_fabric_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "MonofilSFGnFGClosingStock_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TradingCogs" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "openingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "openingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "closingStockValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "difference_stock" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "difference_stock_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "TradingCogs_pkey" PRIMARY KEY ("id")
+);

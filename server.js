@@ -1624,6 +1624,79 @@ app.get("/cogs", async (req, res) => {
 
         console.log('📊 Trading COGS', tradingCOGS);
 
+        await prisma.hdpeCogs.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...hdpeCogsData },
+            create: { time_id: timeRecord.id, ...hdpeCogsData },
+        });
+        console.log('📊 HDPE COGS Data upserted:', hdpeCogsData);
+
+        await prisma.mdCogs.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...mdCogsData },
+            create: { time_id: timeRecord.id, ...mdCogsData },
+        });
+        console.log('📊 MD COGS Data upserted:', mdCogsData);
+
+        await prisma.cpCogs.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...cpCogsData },
+            create: { time_id: timeRecord.id, ...cpCogsData },
+        });
+        console.log('📊 CP COGS Data upserted:', cpCogsData);
+
+        await prisma.rmConsumptionCogs.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...rmConsumptionCogsData },
+            create: { time_id: timeRecord.id, ...rmConsumptionCogsData },
+        });
+        console.log('📊 RM Consumption COGS Data upserted:', rmConsumptionCogsData);
+
+        await prisma.monofilCogs.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...monofilCogsData },
+            create: { time_id: timeRecord.id, ...monofilCogsData },
+        });
+        console.log('📊 Monofilament COGS Data upserted:', monofilCogsData);
+
+        await prisma.totalCogs.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...totalCogsDataCOGS },
+            create: { time_id: timeRecord.id, ...totalCogsDataCOGS },
+        });
+        console.log('📊 Total COGS Data upserted:', totalCogsDataCOGS);
+
+        await prisma.monofilSFGnFGOpeningStock.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...monofilSFGnFGOpeningStockCOGS },
+            create: { time_id: timeRecord.id, ...monofilSFGnFGOpeningStockCOGS },
+        });
+        console.log('📊 Monofil SFG Opening Stock upserted:', monofilSFGnFGOpeningStockCOGS);
+
+        await prisma.monofilSFGnFGPurchase.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...monofilSFGnFGPurchaseCOGS },
+            create: { time_id: timeRecord.id, ...monofilSFGnFGPurchaseCOGS },
+        });
+        console.log('📊 Monofil SFG Purchase upserted:', monofilSFGnFGPurchaseCOGS);
+
+        await prisma.monofilSFGnFGClosingStock.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...monogilSFGnFGClosingStockCOGS },
+            create: { time_id: timeRecord.id, ...monogilSFGnFGClosingStockCOGS },
+        });
+        console.log('📊 Monofil SFG Closing Stock upserted:', monogilSFGnFGClosingStockCOGS);
+
+        await prisma.tradingCogs.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...tradingCOGS },
+            create: { time_id: timeRecord.id, ...tradingCOGS },
+        });
+        console.log('📊 Trading COGS upserted:', tradingCOGS);
+
+
+        return res.json({ message: 'COGS data extracted and added successfully' });
+
     } catch (error) {
         console.error('❌ Error:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
@@ -1801,7 +1874,18 @@ app.get("/pal1", async (req, res) => {
 
         const d17 = d12 + pal1Data.wasteValue + pal1Data.otherInc
 
+        pal1Data.ProfitA = Math.abs(d17 - (pal1Data.directCost + pal1Data.indirectExpenses + pal1Data.deprecation))
+
         console.log('📊 PAL1 Data:', pal1Data);
+
+        await prisma.pal1.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...pal1Data },
+            create: { time_id: timeRecord.id, ...pal1Data },
+        });
+        console.log('📊 PAL1 Data upserted:', pal1Data);
+
+        return res.json({ message: 'PAL1 data extracted and added successfully' });
 
     } catch (error) {
         console.error('❌ Error:', error);
@@ -1809,6 +1893,83 @@ app.get("/pal1", async (req, res) => {
     }
 }
 );
+
+app.get("/finAnalysis", async (req, res) => {
+    try {
+        const month = req.query.month
+
+        const date = parseExcelDate(month);
+
+        const timeRecord = await prisma.timeRecord.findUnique({
+            where: {
+                time: date,
+            },
+        });
+
+        if (!timeRecord) {
+            return res.status(404).json({ message: 'Time record not found for the given date' });
+        }
+
+        const oneMonthBackRecord = await prisma.timeRecord.findFirst({
+            where: {
+                time: new Date(date.setMonth(date.getMonth() - 1)),
+            }
+        });
+
+        if (!oneMonthBackRecord) {
+            return res.status(404).json({ message: 'Time record not found for the previous month' });
+        }
+
+        const rmConsumptionCogs = await prisma.rmConsumptionCogs.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const monofil = ((rmConsumptionCogs?.openingStockValue || 0) + (rmConsumptionCogs?.purchaseValue || 0)) - ((rmConsumptionCogs?.salesValue || 0) + (rmConsumptionCogs?.closingStockValue || 0)); //some values are worng or missing refer to the excel g4
+
+        const mfPurchase = await prisma.monofilCogs.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const sfgOpening = await prisma.monofilSFGnFGOpeningStock.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        });
+
+        const openingValue = sfgOpening ? sfgOpening.sfg_yarn_value + sfgOpening.fg_fabric_value : 0;
+
+        const sfgClosing = await prisma.monofilSFGnFGClosingStock.findUnique({
+            where: {
+                time_id: timeRecord.id
+            }
+        });
+
+        const closingValue = sfgClosing ? sfgClosing.sfg_yarn_value + sfgClosing.fg_fabric_value : 0;
+
+
+        // const sales = wait for pal2
+
+        const consumption = {
+            monofil,
+            mfPurchase: mfPurchase.yarnValue + mfPurchase.purchaseFabricValue + mfPurchase.consumablesPurchase,
+            sfgFG: openingValue - closingValue,
+
+
+        }
+
+        consumption.totalMonofil = consumption.monofil + consumption.mfPurchase + consumption.sfgFG
+
+        console.log('📊 Consumption:', consumption);
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 
 const server = app.listen(port, () => {
     console.log(`Server running on ${port}`);

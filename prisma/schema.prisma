@@ -434,3 +434,160 @@ model Totals {
 
   @@unique([time_id, type], name: "time_id_type_unique")
 }
+
+//////COGS///////
+
+// HDPE COGS Data
+model HdpeCogs {
+  id                Int   @id @default(autoincrement())
+  time_id           Int   @unique
+  openingStock      Float @default(0)
+  openingStockValue Float @default(0)
+  purchaseQty       Float @default(0)
+  purchaseValue     Float @default(0)
+  salesQty          Float @default(0)
+  salesValue        Float @default(0)
+  closingStockQty   Float @default(0)
+  closingStockValue Float @default(0)
+}
+
+// MD (Master Batches) COGS Data
+model MdCogs {
+  id                Int   @id @default(autoincrement())
+  time_id           Int   @unique
+  openingStock      Float @default(0)
+  openingStockValue Float @default(0)
+  purchaseQty       Float @default(0)
+  purchaseValue     Float @default(0)
+  closingStockQty   Float @default(0)
+  closingStockValue Float @default(0)
+}
+
+// CP (Colour Pigments) COGS Data
+model CpCogs {
+  id                Int   @id @default(autoincrement())
+  time_id           Int   @unique
+  openingStock      Float @default(0)
+  openingStockValue Float @default(0)
+  purchaseQty       Float @default(0)
+  purchaseValue     Float @default(0)
+  closingStockQty   Float @default(0)
+  closingStockValue Float @default(0)
+}
+
+// RM (Raw Material) Consumption COGS Data
+model RmConsumptionCogs {
+  id                Int   @id @default(autoincrement())
+  time_id           Int   @unique
+  openingStock      Float @default(0)
+  openingStockValue Float @default(0)
+  purchaseQty       Float @default(0)
+  purchaseValue     Float @default(0)
+  sales             Float @default(0)
+  salesValue        Float @default(0)
+  closingStock      Float @default(0)
+  closingStockValue Float @default(0)
+}
+
+// Monofilament COGS Data
+model MonofilCogs {
+  id                  Int   @id @default(autoincrement())
+  time_id             Int   @unique
+  yarnPurchases       Float @default(0)
+  yarnValue           Float @default(0)
+  purchaseFabric      Float @default(0)
+  purchaseFabricValue Float @default(0)
+  consumablesPurchase Float @default(0)
+}
+
+// Total COGS Data
+model TotalCogs {
+  id                   Int   @id @default(autoincrement())
+  time_id              Int   @unique
+  openingStock         Float @default(0)
+  openingStockValue    Float @default(0)
+  purchaseHD           Float @default(0)
+  purchaseHDValue      Float @default(0)
+  purchaseMD           Float @default(0)
+  purchaseMDValue      Float @default(0)
+  purchaseMonofil      Float @default(0)
+  purchaseMonofilValue Float @default(0)
+  rmSales              Float @default(0)
+  rmSalesValue         Float @default(0)
+  closingStock         Float @default(0)
+  closingStockValue    Float @default(0)
+}
+
+// Monofil SFG and FG Opening Stock COGS
+model MonofilSFGnFGOpeningStock {
+  id              Int   @id @default(autoincrement())
+  time_id         Int   @unique
+  sfg_yarn        Float @default(0)
+  sfg_yarn_value  Float @default(0)
+  fg_fabric       Float @default(0)
+  fg_fabric_value Float @default(0)
+}
+
+// Monofil SFG and FG Purchase COGS
+model MonofilSFGnFGPurchase {
+  id              Int   @id @default(autoincrement())
+  time_id         Int   @unique
+  sfg_yarn        Float @default(0)
+  sfg_yarn_value  Float @default(0)
+  fg_fabric       Float @default(0)
+  fg_fabric_value Float @default(0)
+  consumables     Float @default(0)
+}
+
+// Monofil SFG and FG Closing Stock COGS
+model MonofilSFGnFGClosingStock {
+  id              Int   @id @default(autoincrement())
+  time_id         Int   @unique
+  sfg_yarn        Float @default(0)
+  sfg_yarn_value  Float @default(0)
+  fg_fabric       Float @default(0)
+  fg_fabric_value Float @default(0)
+}
+
+// Trading COGS
+model TradingCogs {
+  id                     Int   @id @default(autoincrement())
+  time_id                Int   @unique
+  openingStock           Float @default(0)
+  openingStockValue      Float @default(0)
+  closingStock           Float @default(0)
+  closingStockValue      Float @default(0)
+  difference_stock       Float @default(0)
+  difference_stock_value Float @default(0)
+}
+
+///PAL1///
+model Pal1 {
+  id                       Int   @id @default(autoincrement())
+  time_id                  Int   @unique // Unique constraint for upsert
+  openingStock             Float @default(0)
+  openingStockValue        Float @default(0)
+  purchaseRm               Float @default(0)
+  purchaseRmValue          Float @default(0)
+  purchaseTrading          Float @default(0)
+  purchaseTradingValue     Float @default(0)
+  purchaseConsumables      Float @default(0)
+  purchaseConsumablesValue Float @default(0)
+  closingStock             Float @default(0)
+  closingStockValue        Float @default(0)
+  sales                    Float @default(0)
+  salesValue               Float @default(0)
+  waste                    Float @default(0)
+  wasteValue               Float @default(0)
+  otherInc                 Float @default(0)
+  directExpenses           Float @default(0)
+  inHouseFabricationQty    Float @default(0)
+  inHouseFabricationValue  Float @default(0)
+  fabricationQty           Float @default(0)
+  fabricationValue         Float @default(0)
+  deprecation              Float @default(0)
+  indirectExpenses         Float @default(0)
+  directCost               Float @default(0) // Calculated field
+  totalCost                Float @default(0) // Calculated field
+  ProfitA                  Float @default(0) // Calculated field
+}
