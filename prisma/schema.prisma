@@ -591,3 +591,28 @@ model Pal1 {
   totalCost                Float @default(0) // Calculated field
   ProfitA                  Float @default(0) // Calculated field
 }
+
+///Trading pl/////
+model TradingPl {
+  id                            Int   @id @default(autoincrement())
+  time_id                       Int   @unique // Unique constraint for upsert
+  Sales_Mono_Shade_Net_Qty      Float @default(0)
+  Sales_Mono_Shade_Net_Value    Float @default(0)
+  Sales_Tape_Shade_Net_Qty      Float @default(0)
+  Sales_Tape_Shade_Net_Value    Float @default(0)
+  Sales_Weed_Mate_Fabrics_Qty   Float @default(0)
+  Sales_Weed_Mate_Fabrics_Value Float @default(0)
+  Sales_PP_Woven_Sacks_Qty      Float @default(0)
+  Sales_PP_Woven_Sacks_Value    Float @default(0)
+  Purchase_PP_Sacks_Qty         Float @default(0)
+  Purchase_PP_Sacks_Value       Float @default(0)
+  Purchase_TSN_Qty              Float @default(0)
+  Purchase_TSN_Value            Float @default(0)
+  // Including commented-out fields as optional
+  Purchase_MSN_Qty              Float @default(0)
+  Purchase_MSN_Value            Float @default(0)
+  Consumption_TSN_Qty           Float @default(0)
+  Consumption_TSN_Value         Float @default(0)
+  Purchase_Others_Qty           Float @default(0)
+  Purchase_Others_Value         Float @default(0)
+}

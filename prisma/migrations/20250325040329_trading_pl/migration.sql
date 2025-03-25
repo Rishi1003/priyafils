@@ -1,0 +1,28 @@
+-- CreateTable
+CREATE TABLE "TradingPl" (
+    "id" SERIAL NOT NULL,
+    "time_id" INTEGER NOT NULL,
+    "Sales_Mono_Shade_Net_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Sales_Mono_Shade_Net_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Sales_Tape_Shade_Net_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Sales_Tape_Shade_Net_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Sales_Weed_Mate_Fabrics_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Sales_Weed_Mate_Fabrics_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Sales_PP_Woven_Sacks_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Sales_PP_Woven_Sacks_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_PP_Sacks_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_PP_Sacks_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_TSN_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_TSN_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_MSN_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_MSN_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Consumption_TSN_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Consumption_TSN_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_Others_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "Purchase_Others_Value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "TradingPl_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TradingPl_time_id_key" ON "TradingPl"("time_id");

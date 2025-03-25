@@ -1894,6 +1894,135 @@ app.get("/pal1", async (req, res) => {
 }
 );
 
+
+app.get("/trading-pl", async (req, res) => {
+    try {
+        const month = req.query.month
+
+        const date = parseExcelDate(month);
+
+        const timeRecord = await prisma.timeRecord.findUnique({
+            where: {
+                time: date,
+            },
+        });
+
+        if (!timeRecord) {
+            return res.status(404).json({ message: 'Time record not found for the given date' });
+        }
+
+        console.log(timeRecord);
+
+        const MSN = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "MSN"
+            }
+        });
+
+        const ANTI_BIRD_NET_Rope_MULCH_FIBC = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "ANTI BIRD NET / Rope/MULCH/FIBC"
+            }
+        });
+
+        const TSN = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "TSN"
+            }
+        });
+
+        const Weed_Mat_Black = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "Weed Mat 1.25 Mtrs Black"
+            }
+        });
+
+        const PP_Woven_Sacks = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "PP Woven Sacks"
+            }
+        });
+
+        // const Receipts_Mono_Shade = await prisma.ShadeNetsTradingQtyAnalysis.findFirst({
+        //     where:{
+        //         time_id:timeRecord.id,
+
+        //     }
+        // });
+
+        const PPSPurchase = await prisma.PPSPurchase.findFirst({
+            where: {
+                time_id: timeRecord.id
+            }
+        });
+
+
+        const Purchase_TSN = await prisma.TSNPurchase.findFirst({
+            where: { time_id: timeRecord.id }
+        });
+
+        console.log(Purchase_TSN);
+
+
+
+        const trading_pl = {
+
+            // Sales- Mulch Film Fabric  ---empty
+
+            Sales_Mono_Shade_Net_Qty: Math.round(
+                (MSN ? MSN.outwardQty : 0) + (ANTI_BIRD_NET_Rope_MULCH_FIBC ? ANTI_BIRD_NET_Rope_MULCH_FIBC.outwardQty : 0)),
+            Sales_Mono_Shade_Net_Value: (MSN ? MSN.amount : 0) + (ANTI_BIRD_NET_Rope_MULCH_FIBC ? ANTI_BIRD_NET_Rope_MULCH_FIBC.amount : 0),
+
+            // Sales PP Woven  Fabrics  ---empty
+
+            Sales_Tape_Shade_Net_Qty: (TSN ? TSN.outwardQty : 0),
+            Sales_Tape_Shade_Net_Value: Math.round(TSN ? TSN.amount : 0),
+
+            Sales_Weed_Mate_Fabrics_Qty: Weed_Mat_Black ? Weed_Mat_Black.outwardQty : 0,
+            Sales_Weed_Mate_Fabrics_Value: Weed_Mat_Black ? Weed_Mat_Black.amount : 0,
+
+            Sales_PP_Woven_Sacks_Qty: PP_Woven_Sacks ? PP_Woven_Sacks.outwardQty : 0,
+            Sales_PP_Woven_Sacks_Value: PP_Woven_Sacks ? PP_Woven_Sacks.amount : 0,
+
+            // Purchase_MSN_Qty: Math.round((Receipts_Mono_Shade? Receipts_Mono_Shade.receiptsMonoShade : 0)+479),
+            // Purchase_MSN_Value:
+
+            Purchase_PP_Sacks_Qty: Math.round(PPSPurchase ? PPSPurchase.kgs : 0),
+            Purchase_PP_Sacks_Value: PPSPurchase ? PPSPurchase.value : 0,
+
+            Purchase_TSN_Qty: Purchase_TSN ? Purchase_TSN.kgs : 0,
+            Purchase_TSN_Value: Math.round(Purchase_TSN ? Purchase_TSN.value : 0),
+
+            // Consumption_TSN_Qty: 0,   
+            // Consumption_TSN_Value: 0,
+
+            // Purchase_Others_Qty: 0,
+            // Purchase_Others_Value: 0,
+
+        }
+
+        await prisma.tradingPl.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...trading_pl },
+            create: { time_id: timeRecord.id, ...trading_pl },
+        });
+        console.log('📊 TradingPl Data upserted:', trading_pl);
+
+        console.log('📊 trading_pl Data:', trading_pl);
+        return res.json({ message: 'successfully Created trading pl' });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+);
+
 app.get("/finAnalysis", async (req, res) => {
     try {
         const month = req.query.month
@@ -1951,6 +2080,18 @@ app.get("/finAnalysis", async (req, res) => {
         const closingValue = sfgClosing ? sfgClosing.sfg_yarn_value + sfgClosing.fg_fabric_value : 0;
 
 
+        const tradingSFGfg = await prisma.tradingCogs.findUnique({
+            where: {
+                time_id: timeRecord.id
+            }
+        });
+
+        const rm = await prisma.rmConsumptionCogs.findUnique({
+            where: {
+                time_id: timeRecord.id
+            }
+        });
+
         // const sales = wait for pal2
 
         const consumption = {
@@ -1958,12 +2099,67 @@ app.get("/finAnalysis", async (req, res) => {
             mfPurchase: mfPurchase.yarnValue + mfPurchase.purchaseFabricValue + mfPurchase.consumablesPurchase,
             sfgFG: openingValue - closingValue,
 
+            // trading: 0, // wait for tradingPL
+            tradingSFGfg: tradingSFGfg.difference_stock_value,
+            rm: rm.salesValue
 
         }
 
         consumption.totalMonofil = consumption.monofil + consumption.mfPurchase + consumption.sfgFG
+        consumption.totalConsumption = consumption.totalMonofil + consumption.tradingSFGfg + consumption.rm // + trading add after fixing it above
 
         console.log('📊 Consumption:', consumption);
+
+        let s21 = await prisma.variableAndDirect.findUnique({
+            where: {
+                time_id: timeRecord.id
+            }
+        });
+
+        s21 = s21 ? Object.keys(s21).reduce((sum, key) => {
+            if (key !== 'id' && key !== 'time_id') {
+                return sum + (s21[key] || 0);
+            }
+            return sum;
+        }, 0) : 0;
+
+        let s47 = await prisma.variableAndDirect.findUnique({
+            where: {
+                time_id: oneMonthBackRecord.id
+            }
+        });
+
+
+        s47 = s47 ? s47.wagesFabric + s47.wagesInspectionDispatch + s47.fabricationCharges : 0;
+
+
+
+        const operatingExpenses = {
+            totalVariableAndDirect: s21 - (s47),// + s48)
+            frabic: s47,
+            // trading: //s48
+        }
+
+        const deprecation = await prisma.fixedExpenses.findUnique({
+            where: {
+                time_id: timeRecord
+            }
+        });
+
+        const overheads = deprecation
+            ? Object.keys(deprecation).reduce((sum, key) => {
+                if (key !== 'id' && key !== 'time_id' && key !== 'depreciation') {
+                    return sum + (deprecation[key] || 0);
+                }
+                return sum;
+            }, 0)
+            : 0;
+
+
+        const fixedExpenses = {
+            deprecation,
+            overheads
+        }
 
     } catch (error) {
         console.error('❌ Error:', error);
