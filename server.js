@@ -1694,6 +1694,145 @@ app.get("/cogs", async (req, res) => {
         });
         console.log('📊 Trading COGS upserted:', tradingCOGS);
 
+        // Create a new workbook and worksheet
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.json_to_sheet([], { skipHeader: true }); // Start with an empty sheet
+
+        // Define the header row
+        const monthHeader = req.query.month; // You can dynamically set this based on the `month` query param if needed
+        const headers = [
+            ["Particulars", monthHeader, "", ""], // Empty cells for alignment
+            ["", "Qty", "Rate", "Value"] // Column headers
+        ];
+
+        // Helper function to calculate rate (value/qty) and handle division by zero
+        const calculateRate = (value, qty) => qty !== 0 ? (value / qty).toFixed(2) : 0;
+
+        // HDPE COGS Data
+        const hdpeData = [
+            ["HDPE", "", "", ""], // Section header
+            ["Opening Stock", hdpeCogsData.openingStock, calculateRate(hdpeCogsData.openingStockValue, hdpeCogsData.openingStock), hdpeCogsData.openingStockValue],
+            ["Purchase", hdpeCogsData.purchaseQty, calculateRate(hdpeCogsData.purchaseValue, hdpeCogsData.purchaseQty), hdpeCogsData.purchaseValue],
+            ["Sales", hdpeCogsData.salesQty, calculateRate(hdpeCogsData.salesValue, hdpeCogsData.salesQty), hdpeCogsData.salesValue],
+            ["Closing Stock", hdpeCogsData.closingStockQty, calculateRate(hdpeCogsData.closingStockValue, hdpeCogsData.closingStockQty), hdpeCogsData.closingStockValue],
+            ["Consumption HDPE",
+                hdpeCogsData.openingStock + hdpeCogsData.purchaseQty - (hdpeCogsData.salesQty + hdpeCogsData.closingStockQty),
+                calculateRate(
+                    hdpeCogsData.openingStockValue + hdpeCogsData.purchaseValue - (hdpeCogsData.salesValue + hdpeCogsData.closingStockValue),
+                    hdpeCogsData.openingStock + hdpeCogsData.purchaseQty - (hdpeCogsData.salesQty + hdpeCogsData.closingStockQty)
+                ),
+                hdpeCogsData.openingStockValue + hdpeCogsData.purchaseValue - (hdpeCogsData.salesValue + hdpeCogsData.closingStockValue)
+            ],
+        ];
+
+        // MD COGS Data
+        const mdData = [
+            ["MD", "", "", ""], // Section header
+            ["Opening Stock", mdCogsData.openingStock, calculateRate(mdCogsData.openingStockValue, mdCogsData.openingStock), mdCogsData.openingStockValue],
+            ["Purchase", mdCogsData.purchaseQty, calculateRate(mdCogsData.purchaseValue, mdCogsData.purchaseQty), mdCogsData.purchaseValue],
+            ["Closing Stock", mdCogsData.closingStockQty, calculateRate(mdCogsData.closingStockValue, mdCogsData.closingStockQty), mdCogsData.closingStockValue]
+        ];
+
+        // CP COGS Data
+        const cpData = [
+            ["CP", "", "", ""], // Section header
+            ["Opening Stock", cpCogsData.openingStock, calculateRate(cpCogsData.openingStockValue, cpCogsData.openingStock), cpCogsData.openingStockValue],
+            ["Purchase", cpCogsData.purchaseQty, calculateRate(cpCogsData.purchaseValue, cpCogsData.purchaseQty), cpCogsData.purchaseValue],
+            ["Closing Stock", cpCogsData.closingStockQty, calculateRate(cpCogsData.closingStockValue, cpCogsData.closingStockQty), cpCogsData.closingStockValue]
+        ];
+
+        // RM Consumption COGS Data
+        const rmData = [
+            ["RM Consumption", "", "", ""], // Section header
+            ["Opening Stock", rmConsumptionCogsData.openingStock, calculateRate(rmConsumptionCogsData.openingStockValue, rmConsumptionCogsData.openingStock), rmConsumptionCogsData.openingStockValue],
+            ["Purchase", rmConsumptionCogsData.purchaseQty, calculateRate(rmConsumptionCogsData.purchaseValue, rmConsumptionCogsData.purchaseQty), rmConsumptionCogsData.purchaseValue],
+            ["Sales", rmConsumptionCogsData.sales, calculateRate(rmConsumptionCogsData.salesValue, rmConsumptionCogsData.sales), rmConsumptionCogsData.salesValue],
+            ["Closing Stock", rmConsumptionCogsData.closingStock, calculateRate(rmConsumptionCogsData.closingStockValue, rmConsumptionCogsData.closingStock), rmConsumptionCogsData.closingStockValue]
+        ];
+
+        // Monofilament COGS Data
+        const monofilData = [
+            ["Monofilament", "", "", ""], // Section header
+            ["Yarn Purchases", monofilCogsData.yarnPurchases, calculateRate(monofilCogsData.yarnValue, monofilCogsData.yarnPurchases), monofilCogsData.yarnValue],
+            ["Purchase Fabric", monofilCogsData.purchaseFabric, calculateRate(monofilCogsData.purchaseFabricValue, monofilCogsData.purchaseFabric), monofilCogsData.purchaseFabricValue],
+            ["Consumables Purchase", "", "", monofilCogsData.consumablesPurchase] // No qty for consumables
+        ];
+
+        // Total COGS Data
+        const totalCogsData = [
+            ["Total COGS", "", "", ""], // Section header
+            ["Opening Stock", totalCogsDataCOGS.openingStock, calculateRate(totalCogsDataCOGS.openingStockValue, totalCogsDataCOGS.openingStock), totalCogsDataCOGS.openingStockValue],
+            ["Purchase HD", totalCogsDataCOGS.purchaseHD, calculateRate(totalCogsDataCOGS.purchaseHDValue, totalCogsDataCOGS.purchaseHD), totalCogsDataCOGS.purchaseHDValue],
+            ["Purchase MD", totalCogsDataCOGS.purchaseMD, calculateRate(totalCogsDataCOGS.purchaseMDValue, totalCogsDataCOGS.purchaseMD), totalCogsDataCOGS.purchaseMDValue],
+            ["Purchase Monofil", totalCogsDataCOGS.purchaseMonofil, calculateRate(totalCogsDataCOGS.purchaseMonofilValue, totalCogsDataCOGS.purchaseMonofil), totalCogsDataCOGS.purchaseMonofilValue],
+            ["RM Sales", totalCogsDataCOGS.rmSales, calculateRate(totalCogsDataCOGS.rmSalesValue, totalCogsDataCOGS.rmSales), totalCogsDataCOGS.rmSalesValue],
+            ["Closing Stock", totalCogsDataCOGS.closingStock, calculateRate(totalCogsDataCOGS.closingStockValue, totalCogsDataCOGS.closingStock), totalCogsDataCOGS.closingStockValue]
+        ];
+
+        // Monofil SFG/FG Opening Stock
+        const monofilSFGOpening = [
+            ["Monofil SFG/FG Opening Stock", "", "", ""], // Section header
+            ["SFG Yarn", monofilSFGnFGOpeningStockCOGS.sfg_yarn, calculateRate(monofilSFGnFGOpeningStockCOGS.sfg_yarn_value, monofilSFGnFGOpeningStockCOGS.sfg_yarn), monofilSFGnFGOpeningStockCOGS.sfg_yarn_value],
+            ["FG Fabric", monofilSFGnFGOpeningStockCOGS.fg_fabric, calculateRate(monofilSFGnFGOpeningStockCOGS.fg_fabric_value, monofilSFGnFGOpeningStockCOGS.fg_fabric), monofilSFGnFGOpeningStockCOGS.fg_fabric_value]
+        ];
+
+        // Monofil SFG/FG Purchase
+        const monofilSFGPurchase = [
+            ["Monofil SFG/FG Purchase", "", "", ""], // Section header
+            ["SFG Yarn", monofilSFGnFGPurchaseCOGS.sfg_yarn, calculateRate(monofilSFGnFGPurchaseCOGS.sfg_yarn_value, monofilSFGnFGPurchaseCOGS.sfg_yarn), monofilSFGnFGPurchaseCOGS.sfg_yarn_value],
+            ["FG Fabric", monofilSFGnFGPurchaseCOGS.fg_fabric, calculateRate(monofilSFGnFGPurchaseCOGS.fg_fabric_value, monofilSFGnFGPurchaseCOGS.fg_fabric), monofilSFGnFGPurchaseCOGS.fg_fabric_value],
+            ["Consumables", "", "", monofilSFGnFGPurchaseCOGS.consumables]
+        ];
+
+        // Monofil SFG/FG Closing Stock
+        const monofilSFGClosing = [
+            ["Monofil SFG/FG Closing Stock", "", "", ""], // Section header
+            ["SFG Yarn", monogilSFGnFGClosingStockCOGS.sfg_yarn, calculateRate(monogilSFGnFGClosingStockCOGS.sfg_yarn_value, monogilSFGnFGClosingStockCOGS.sfg_yarn), monogilSFGnFGClosingStockCOGS.sfg_yarn_value],
+            ["FG Fabric", monogilSFGnFGClosingStockCOGS.fg_fabric, calculateRate(monogilSFGnFGClosingStockCOGS.fg_fabric_value, monogilSFGnFGClosingStockCOGS.fg_fabric), monogilSFGnFGClosingStockCOGS.fg_fabric_value]
+        ];
+
+        // Trading COGS
+        const tradingData = [
+            ["Trading COGS", "", "", ""], // Section header
+            ["Opening Stock", tradingCOGS.openingStock, calculateRate(tradingCOGS.openingStockValue, tradingCOGS.openingStock), tradingCOGS.openingStockValue],
+            ["Closing Stock", tradingCOGS.closingStock, calculateRate(tradingCOGS.closingStockValue, tradingCOGS.closingStock), tradingCOGS.closingStockValue],
+            ["Difference Stock", tradingCOGS.difference_stock, calculateRate(tradingCOGS.difference_stock_value, tradingCOGS.difference_stock), tradingCOGS.difference_stock_value]
+        ];
+
+        // Combine all data with spacing between sections
+        const allData = [
+            ...headers,
+            ...hdpeData, [""], // Empty row for spacing
+            ...mdData, [""],
+            ...cpData, [""],
+            ...rmData, [""],
+            ...monofilData, [""],
+            ...totalCogsData, [""],
+            ...monofilSFGOpening, [""],
+            ...monofilSFGPurchase, [""],
+            ...monofilSFGClosing, [""],
+            ...tradingData
+        ];
+
+        // Append all data to the worksheet
+        xlsx.utils.sheet_add_aoa(ws, allData, { origin: "A1" });
+
+        // Set column widths (optional)
+        ws['!cols'] = [
+            { wch: 25 }, // Particulars
+            { wch: 15 }, // Qty
+            { wch: 15 }, // Rate
+            { wch: 15 }  // Value
+        ];
+
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(wb, ws, "COGS");
+
+        // Write the file
+        const filePath = `./COGS_${monthHeader}.xlsx`;
+        xlsx.writeFile(wb, filePath);
+
+        console.log(`📊 Excel file generated: ${filePath}`);
 
         return res.json({ message: 'COGS data extracted and added successfully' });
 
@@ -1878,6 +2017,67 @@ app.get("/pal1", async (req, res) => {
 
         console.log('📊 PAL1 Data:', pal1Data);
 
+
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.json_to_sheet([], { skipHeader: true }); // Start with an empty sheet
+
+        // Define the header row
+        const monthHeader = req.query.month; // You can dynamically set this based on the `month` query param if needed
+        const headers = [
+            ["Particulars", monthHeader, "", ""], // Empty cells for alignment
+            ["", "Qty", "Rate", "Value"] // Column headers
+        ];
+
+        // Helper function to calculate rate (value/qty) and handle division by zero
+        const calculateRate = (value, qty) => qty !== 0 ? (value / qty).toFixed(2) : 0;
+
+        // PAL1 Data for Excel
+        const pal1ExcelData = [
+            ["Opening Stock", pal1Data.openingStock, calculateRate(pal1Data.openingStockValue, pal1Data.openingStock), pal1Data.openingStockValue],
+            ["Purchase RM", pal1Data.purchaseRm, calculateRate(pal1Data.purchaseRmValue, pal1Data.purchaseRm), pal1Data.purchaseRmValue],
+            ["Purchase Trading", pal1Data.purchaseTrading, calculateRate(pal1Data.purchaseTradingValue, pal1Data.purchaseTrading), pal1Data.purchaseTradingValue],
+            ["Purchase Consumables", pal1Data.purchaseConsumables, calculateRate(pal1Data.purchaseConsumablesValue, pal1Data.purchaseConsumables), pal1Data.purchaseConsumablesValue],
+            ["Closing Stock", pal1Data.closingStock, calculateRate(pal1Data.closingStockValue, pal1Data.closingStock), pal1Data.closingStockValue],
+            ["Sales", pal1Data.sales, calculateRate(pal1Data.salesValue, pal1Data.sales), pal1Data.salesValue],
+            ["Waste", pal1Data.waste, calculateRate(pal1Data.wasteValue, pal1Data.waste), pal1Data.wasteValue],
+            ["Other Income", "", "", pal1Data.otherInc], // No Qty for Other Income
+            ["Direct Expenses", "", "", pal1Data.directExpenses], // No Qty for Direct Expenses
+            ["In-House Fabrication", pal1Data.inHouseFabricationQty, calculateRate(pal1Data.inHouseFabricationValue, pal1Data.inHouseFabricationQty), pal1Data.inHouseFabricationValue],
+            ["Fabrication", pal1Data.fabricationQty, calculateRate(pal1Data.fabricationValue, pal1Data.fabricationQty), pal1Data.fabricationValue],
+            ["Deprecation", "", "", pal1Data.deprecation], // No Qty for Deprecation
+            ["Indirect Expenses", "", "", pal1Data.indirectExpenses], // No Qty for Indirect Expenses
+            ["Direct Cost", "", "", pal1Data.directCost], // Calculated field, no Qty
+            ["Total Cost", "", "", pal1Data.totalCost], // Calculated field, no Qty
+            ["Profit A", "", "", pal1Data.ProfitA] // Calculated field, no Qty
+        ];
+
+        // Combine headers and data
+        const allData = [
+            ...headers,
+            ...pal1ExcelData
+        ];
+
+        // Append all data to the worksheet
+        xlsx.utils.sheet_add_aoa(ws, allData, { origin: "A1" });
+
+        // Set column widths (optional)
+        ws['!cols'] = [
+            { wch: 25 }, // Particulars
+            { wch: 15 }, // Qty
+            { wch: 15 }, // Rate
+            { wch: 15 }  // Value
+        ];
+
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(wb, ws, "PAL1");
+
+        // Write the file
+        const filePath = `./PAL1_${monthHeader}.xlsx`;
+        xlsx.writeFile(wb, filePath);
+
+        console.log(`📊 Excel file generated: ${filePath}`);
+
+
         await prisma.pal1.upsert({
             where: { time_id: timeRecord.id },
             update: { ...pal1Data },
@@ -2006,6 +2206,56 @@ app.get("/trading-pl", async (req, res) => {
 
         }
 
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.json_to_sheet([], { skipHeader: true }); // Start with an empty sheet
+
+        // Define the header row using req.query.month
+        const monthHeader = req.query.month; // Use the month from query param
+        const headers = [
+            ["Particulars", monthHeader, "", ""], // Empty cells for alignment
+            ["", "Qty", "Rate", "Value"] // Column headers
+        ];
+
+        // Helper function to calculate rate (value/qty) and handle division by zero
+        const calculateRate = (value, qty) => qty !== 0 ? (value / qty).toFixed(2) : 0;
+
+        // Trading PL Data for Excel
+        const tradingPlExcelData = [
+            ["Sales Mono Shade Net", trading_pl.Sales_Mono_Shade_Net_Qty, calculateRate(trading_pl.Sales_Mono_Shade_Net_Value, trading_pl.Sales_Mono_Shade_Net_Qty), trading_pl.Sales_Mono_Shade_Net_Value],
+            ["Sales Tape Shade Net", trading_pl.Sales_Tape_Shade_Net_Qty, calculateRate(trading_pl.Sales_Tape_Shade_Net_Value, trading_pl.Sales_Tape_Shade_Net_Qty), trading_pl.Sales_Tape_Shade_Net_Value],
+            ["Sales Weed Mate Fabrics", trading_pl.Sales_Weed_Mate_Fabrics_Qty, calculateRate(trading_pl.Sales_Weed_Mate_Fabrics_Value, trading_pl.Sales_Weed_Mate_Fabrics_Qty), trading_pl.Sales_Weed_Mate_Fabrics_Value],
+            ["Sales PP Woven Sacks", trading_pl.Sales_PP_Woven_Sacks_Qty, calculateRate(trading_pl.Sales_PP_Woven_Sacks_Value, trading_pl.Sales_PP_Woven_Sacks_Qty), trading_pl.Sales_PP_Woven_Sacks_Value],
+            ["Purchase PP Sacks", trading_pl.Purchase_PP_Sacks_Qty, calculateRate(trading_pl.Purchase_PP_Sacks_Value, trading_pl.Purchase_PP_Sacks_Qty), trading_pl.Purchase_PP_Sacks_Value],
+            ["Purchase TSN", trading_pl.Purchase_TSN_Qty, calculateRate(trading_pl.Purchase_TSN_Value, trading_pl.Purchase_TSN_Qty), trading_pl.Purchase_TSN_Value]
+            // Add more fields like Purchase_MSN_Qty/Value, Consumption_TSN_Qty/Value, etc., if they get uncommented and populated later
+        ];
+
+        // Combine headers and data
+        const allData = [
+            ...headers,
+            ...tradingPlExcelData
+        ];
+
+        // Append all data to the worksheet
+        xlsx.utils.sheet_add_aoa(ws, allData, { origin: "A1" });
+
+        // Set column widths (optional)
+        ws['!cols'] = [
+            { wch: 25 }, // Particulars
+            { wch: 15 }, // Qty
+            { wch: 15 }, // Rate
+            { wch: 15 }  // Value
+        ];
+
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(wb, ws, "TradingPL");
+
+        // Write the file
+        const filePath = `./TradingPL_${monthHeader}.xlsx`;
+        xlsx.writeFile(wb, filePath);
+
+        console.log(`📊 Excel file generated: ${filePath}`);
+
         await prisma.tradingPl.upsert({
             where: { time_id: timeRecord.id },
             update: { ...trading_pl },
@@ -2015,6 +2265,170 @@ app.get("/trading-pl", async (req, res) => {
 
         console.log('📊 trading_pl Data:', trading_pl);
         return res.json({ message: 'successfully Created trading pl' });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+);
+
+app.get("/pal2", async (req, res) => {
+    try {
+        const month = req.query.month
+
+        const date = parseExcelDate(month);
+
+        const timeRecord = await prisma.timeRecord.findUnique({
+            where: {
+                time: date,
+            },
+        });
+
+        console.log(timeRecord);
+
+        if (!timeRecord) {
+            return res.status(404).json({ message: 'Time record not found for the given date' });
+        }
+
+        const oneMonthBackRecord = await prisma.timeRecord.findFirst({
+            where: {
+                time: new Date(date.setMonth(date.getMonth() - 1)),
+            }
+        });
+
+        if (!oneMonthBackRecord) {
+            return res.status(404).json({ message: 'Time record not found for the previous month' });
+        }
+
+        const opstock = await prisma.stockValuation.findMany({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                AND: {
+                    material_type: {
+                        in: ["hdpeGranules", "masterBatches", "colourPigments"]
+                    }
+                }
+            }
+        });
+
+        const Pal1 = await prisma.Pal1.findUnique({
+            where: {
+                time_id: timeRecord.id,
+            },
+        })
+
+        const clstock = await prisma.stockValuation.findMany({
+            where: {
+                time_id: timeRecord.id,
+                AND: {
+                    material_type: {
+                        in: ["hdpeGranules", "masterBatches", "colourPigments"]
+                    }
+                }
+            }
+        });
+
+        const Sale_of_Asset_Etc = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "Sale of Asset Etc"
+            }
+        });
+
+        const Raw_Material = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "Raw Material"
+            }
+        })
+
+        const HDPE_Monofilament_Waste = await prisma.inventoryDetails.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                materialName: "HDPE Monofilament Waste"
+            }
+        })
+
+        const Trading_SaleS = await prisma.TradingPl.findFirst({
+            where: {
+                time_id: timeRecord.id
+            }
+        })
+
+        console.log(Pal1);
+
+
+        const pal2Data = {
+            openingStock: opstock.reduce((acc, item) => acc + item.qty, 0),
+            openingStockValue: opstock.reduce((acc, item) => acc + item.value, 0),
+
+            Purchase_RM_Qty: Pal1 ? Pal1.purchaseRm : 0,
+            Purchase_RM_Value: Pal1 ? Pal1.purchaseRmValue : 0,
+
+            Purchase_Trading_Qty: Math.round(Pal1 ? Pal1.purchaseTrading : 0),
+            Purchase_Trading_Value: Math.round(Pal1 ? Pal1.purchaseTradingValue : 0),
+
+            Purchase_consumable_Qty: Math.round(Pal1 ? Pal1.purchaseConsumables : 0),
+            Purchase_consumable_Value: Math.round(Pal1 ? Pal1.purchaseConsumablesValue : 0),
+
+            closingStock: clstock.reduce((acc, item) => acc + item.qty, 0),
+            closingStockValue: clstock.reduce((acc, item) => acc + item.value, 0),
+
+            HD_Sale_Qty: Math.round((Sale_of_Asset_Etc ? Sale_of_Asset_Etc.outwardQty : 0) + (Raw_Material ? Raw_Material.outwardQty : 0)),
+            HD_Sale_Value: Math.round((Sale_of_Asset_Etc ? Sale_of_Asset_Etc.amount : 0) + (Raw_Material ? Raw_Material.amount : 0)),
+
+            Trading_SaleS_Qty: Math.round((Trading_SaleS ? Trading_SaleS.Sales_Mono_Shade_Net_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Tape_Shade_Net_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Weed_Mate_Fabrics_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_PP_Woven_Sacks_Qty : 0)),
+            Trading_SaleS_Value: Math.round((Trading_SaleS ? Trading_SaleS.Sales_Mono_Shade_Net_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Tape_Shade_Net_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Weed_Mate_Fabrics_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_PP_Woven_Sacks_Value : 0)),
+
+            // Monofil_Trading -- pending
+
+            // Monofil_Sales  ---pending
+
+            // Diff_SFG_FG -- pending
+
+            // GST_Refund  --empty
+
+            waste_Qty: HDPE_Monofilament_Waste ? HDPE_Monofilament_Waste.outwardQty : 0,
+            waste_Value: HDPE_Monofilament_Waste ? HDPE_Monofilament_Waste.amount : 0,
+
+            // Othr_Inc_Qty: Math.round(Pal1 ? Pal1.otherInc : 0),
+            Othr_Inc_Value: Math.round(Pal1 ? Pal1.otherInc : 0),
+
+            // Trading_Expns_Value -- pending
+
+            // Direct_Expns     -- pending
+
+            In_House_Fabrn_Qty: Pal1 ? Pal1.inHouseFabricationQty : 0,
+            In_House_Fabrn_Value: Pal1 ? Pal1.inHouseFabricationValue : 0,
+
+            Fabrication_Qty: Pal1 ? Pal1.fabricationQty : 0,
+            Fabrication_Value: Pal1 ? Pal1.fabricationValue : 0,
+
+            // SVE_HBSS  -- empty
+
+            // Admn_Value
+
+            //Selling
+
+            Deprecition_value: Pal1 ? Pal1.deprecation : 0
+
+            // W Cap Int
+
+            // Term Loan  --empty
+
+        }
+
+        console.log('📊 PAL2 Data:', pal2Data);
+
+        await prisma.pal2.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...pal2Data },
+            create: { time_id: timeRecord.id, ...pal2Data },
+        });
+        console.log('📊 PAL2 Data upserted:', pal2Data);
+
+        return res.json({ message: 'PAL2 data extracted and added successfully' });
 
     } catch (error) {
         console.error('❌ Error:', error);
@@ -2166,6 +2580,8 @@ app.get("/finAnalysis", async (req, res) => {
         return res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
+
 
 const server = app.listen(port, () => {
     console.log(`Server running on ${port}`);

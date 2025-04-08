@@ -616,3 +616,48 @@ model TradingPl {
   Purchase_Others_Qty           Float @default(0)
   Purchase_Others_Value         Float @default(0)
 }
+
+//////PAL2///////
+
+model Pal2 {
+  id                        Int   @id @default(autoincrement())
+  time_id                   Int   @unique // Unique constraint for upsert
+  openingStock              Float @default(0)
+  openingStockValue         Float @default(0)
+  Purchase_RM_Qty           Float @default(0)
+  Purchase_RM_Value         Float @default(0)
+  Purchase_Trading_Qty      Float @default(0)
+  Purchase_Trading_Value    Float @default(0)
+  Purchase_consumable_Qty   Float @default(0)
+  Purchase_consumable_Value Float @default(0)
+  closingStock              Float @default(0)
+  closingStockValue         Float @default(0)
+  HD_Sale_Qty               Float @default(0)
+  HD_Sale_Value             Float @default(0)
+  Trading_SaleS_Qty         Float @default(0)
+  Trading_SaleS_Value       Float @default(0)
+  waste_Qty                 Float @default(0)
+  waste_Value               Float @default(0)
+  Othr_Inc_Value            Float @default(0)
+  In_House_Fabrn_Qty        Float @default(0)
+  In_House_Fabrn_Value      Float @default(0)
+  Fabrication_Qty           Float @default(0)
+  Fabrication_Value         Float @default(0)
+  Deprecition_value         Float @default(0)
+  // Including commented-out/pending fields as optional
+  Monofil_Trading_Qty       Float @default(0)
+  Monofil_Trading_Value     Float @default(0)
+  Monofil_Sales_Qty         Float @default(0)
+  Monofil_Sales_Value       Float @default(0)
+  Diff_SFG_FG_Qty           Float @default(0)
+  Diff_SFG_FG_Value         Float @default(0)
+  GST_Refund_Qty            Float @default(0)
+  GST_Refund_Value          Float @default(0)
+  Trading_Expns_Value       Float @default(0)
+  Direct_Expns_Value        Float @default(0)
+  SVE_HBSS_Value            Float @default(0)
+  Admn_Value                Float @default(0)
+  Selling_Value             Float @default(0)
+  W_Cap_Int_Value           Float @default(0)
+  Term_Loan_Value           Float @default(0)
+}
