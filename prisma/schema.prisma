@@ -661,3 +661,112 @@ model Pal2 {
   W_Cap_Int_Value           Float @default(0)
   Term_Loan_Value           Float @default(0)
 }
+
+//fin analysis
+
+model Sales {
+  id       Int   @id @default(autoincrement())
+  time_id  Int   @unique
+  monofil  Float
+  trading  Float
+  rm       Float
+  otherInc Float
+}
+
+model Consumption {
+  id               Int   @id @default(autoincrement())
+  time_id          Int   @unique
+  monofil          Float
+  mfPurchase       Float
+  sfgFG            Float
+  tradingSFGfg     Float
+  rm               Float
+  totalMonofil     Float
+  totalConsumption Float
+}
+
+model OperatingExpenses {
+  id                     Int   @id @default(autoincrement())
+  time_id                Int   @unique
+  totalVariableAndDirect Float
+  frabic                 Float
+}
+
+model FixedExpenses {
+  id           Int   @id @default(autoincrement())
+  time_id      Int   @unique
+  depreciation Float
+  overheads    Float
+}
+
+//sales summary
+
+model McfSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model WmSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model InhSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model YarnSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model TsnSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model MsnSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model MiscSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model PpsSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model RmSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
+
+model WasteSalesSummary {
+  id         Int   @id @default(autoincrement())
+  time_id    Int   @unique
+  salesKgs   Float
+  salesValue Float
+}
