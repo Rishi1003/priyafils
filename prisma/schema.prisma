@@ -384,7 +384,7 @@ model variableAndDirect {
   workingCapitalOcc         Float
 }
 
-model fixedExpenses {
+model fixedExpenses2 {
   id                       Int   @id @default(autoincrement())
   time_id                  Int   @unique
   employeesWelfareExp      Float

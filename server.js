@@ -1,6 +1,9 @@
 // basic boilerplate for a express server
 import express from 'express';
-import fs from 'fs/promises';
+
+import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
+
 import path from 'path';
 import xlsx from 'xlsx';
 import { PrismaClient } from '@prisma/client';
@@ -8,7 +11,6 @@ import { fileURLToPath } from 'url';
 
 
 import { parseExcelDate } from './utils.js';
-import { time } from 'console';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
@@ -1064,7 +1066,7 @@ app.get("/direct-expenses", async (req, res) => {
             financeCostIntOnDeposits: data[28] && data[28][4] ? data[28][4] : 0
         }
 
-        await prisma.fixedExpenses.upsert({
+        await prisma.fixedExpenses2.upsert({
             where: { time_id: fixedExpensesData.time_id },
             update: fixedExpensesData,
             create: fixedExpensesData,
@@ -1857,7 +1859,7 @@ app.get("/cogs", async (req, res) => {
         let wb, ws;
 
         // Check if the file exists
-        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        const fileExists = await fsPromises.access(filePath).then(() => true).catch(() => false);
 
         if (fileExists) {
             // Read existing workbook
@@ -2572,7 +2574,7 @@ app.get("/pal1", async (req, res) => {
         let wb, ws;
 
         // Check if the file exists
-        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        const fileExists = await fsPromises.access(filePath).then(() => true).catch(() => false);
 
         if (fileExists) {
             // Read existing workbook
@@ -3003,7 +3005,7 @@ app.get('/trading-pl', async (req, res) => {
         let wb, ws;
 
         // Check if the file exists
-        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        const fileExists = await fsPromises.access(filePath).then(() => true).catch(() => false);
 
         if (fileExists) {
             // Read existing workbook
@@ -3451,12 +3453,13 @@ app.get('/trading-pl', async (req, res) => {
 app.get('/pal2', async (req, res) => {
     try {
         const month = req.query.month;
+        console.log(month);
         const date = parseExcelDate(month);
         const filePath = path.join(__dirname, 'PAL2.xlsx'); // Write to data folder
         let wb, ws;
 
         // Check if the file exists
-        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        const fileExists = await fsPromises.access(filePath).then(() => true).catch(() => false);
 
         if (fileExists) {
             // Read existing workbook
@@ -4032,7 +4035,7 @@ app.get('/finAnalysis', async (req, res) => {
         let wb, ws;
 
         // Check if the file exists
-        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        const fileExists = await fsPromises.access(filePath).then(() => true).catch(() => false);
 
         if (fileExists) {
             // Read existing workbook
@@ -4641,7 +4644,7 @@ app.get('/salesSummary', async (req, res) => {
         let wb, ws;
 
         // Check if the file exists
-        const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        const fileExists = await fsPromises.access(filePath).then(() => true).catch(() => false);
 
         if (fileExists) {
             // Read existing workbook
@@ -4956,65 +4959,66 @@ app.get('/consolidateReports', async (req, res) => {
 });
 
 
-app.get('/separateReports', async (req, res) => {
+app.get('/separateReports', (req, res) => {
     try {
         const inputFilePath = path.join(__dirname, 'ConsolidatedReports.xlsx');
 
-        // Check if ConsolidatedReports.xlsx exists
-        const fileExists = await fs.access(inputFilePath).then(() => true).catch(() => false);
-        if (!fileExists) {
-            return res.status(404).json({ message: 'ConsolidatedReports.xlsx not found' });
-        }
-
-        // Read the consolidated workbook
-        const wb = xlsx.readFile(inputFilePath);
-        const sheetNames = wb.SheetNames;
-
-        // Expected sheets (to ensure we only process known sheets)
-        const expectedSheets = [
-            'COGS',
-            'PAL1',
-            'TradingPL',
-            'PAL2',
-            'FinAnalysis',
-            'SalesSummary'
-        ];
-
-        // Array to track generated files
-        const generatedFiles = [];
-
-        // Iterate over each sheet
-        for (const sheetName of sheetNames) {
-            // Only process sheets that match expected names
-            if (!expectedSheets.includes(sheetName)) {
-                console.warn(`⚠️ Skipping unexpected sheet: ${sheetName}`);
-                continue;
+        // Check if ConsolidatedReports.xlsx exists using callback-based fs.access
+        fs.access(inputFilePath, fs.constants.F_OK, (err) => {
+            if (err) {
+                return res.status(404).json({ message: 'ConsolidatedReports.xlsx not found' });
             }
 
-            // Get the worksheet
-            const ws = wb.Sheets[sheetName];
+            // Read the consolidated workbook
+            const wb = xlsx.readFile(inputFilePath);
+            const sheetNames = wb.SheetNames;
 
-            // Create a new workbook for this sheet
-            const newWb = xlsx.utils.book_new();
-            xlsx.utils.book_append_sheet(newWb, ws, sheetName);
+            // Expected sheets
+            const expectedSheets = [
+                'COGS',
+                'PAL1',
+                'TradingPL',
+                'PAL2',
+                'FinAnalysis',
+                'SalesSummary'
+            ];
 
-            // Define the output file path (e.g., COGS.xlsx)
-            const outputFilePath = path.join(__dirname, `${sheetName}.xlsx`);
+            // Array to track generated files
+            const generatedFiles = [];
 
-            // Write the individual file
-            xlsx.writeFile(newWb, outputFilePath);
-            generatedFiles.push(outputFilePath);
-            console.log(`📊 Generated individual file: ${outputFilePath}`);
-        }
+            // Iterate over each sheet
+            for (const sheetName of sheetNames) {
+                // Only process sheets that match expected names
+                if (!expectedSheets.includes(sheetName)) {
+                    console.warn(`⚠️ Skipping unexpected sheet: ${sheetName}`);
+                    continue;
+                }
 
-        if (generatedFiles.length === 0) {
-            return res.status(400).json({ message: 'No valid sheets found to separate' });
-        }
+                // Get the worksheet
+                const ws = wb.Sheets[sheetName];
 
-        // Send response
-        res.status(200).json({
-            message: 'Consolidated reports separated successfully',
-            files: generatedFiles
+                // Create a new workbook for this sheet
+                const newWb = xlsx.utils.book_new();
+                xlsx.utils.book_append_sheet(newWb, ws, sheetName);
+
+                // Define the output file path (e.g., COGS.xlsx)
+                const outputFilePath = path.join(__dirname, `${sheetName}.xlsx`);
+
+                // Write the individual file
+                xlsx.writeFile(newWb, outputFilePath);
+                generatedFiles.push(outputFilePath);
+                console.log(`📊 Generated individual file: ${outputFilePath}`);
+            }
+
+            if (generatedFiles.length === 0) {
+                return res.status(400).json({ message: 'No valid sheets found to separate' });
+            }
+
+            // Send response
+            res.status(200).json({
+                message: 'Consolidated reports separated successfully',
+                files: generatedFiles
+            });
         });
     } catch (error) {
         console.error('❌ Error:', error);
