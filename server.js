@@ -2170,17 +2170,19 @@ app.get("/cogs", async (req, res) => {
         ];
 
         const mdData = [
-            ["MD", "", "", ""],
+            ["MB", "", "", ""],
             ["Opening Stock", mdCogsData.openingStock, calculateRate(mdCogsData.openingStockValue, mdCogsData.openingStock), mdCogsData.openingStockValue],
             ["Purchase", mdCogsData.purchaseQty, calculateRate(mdCogsData.purchaseValue, mdCogsData.purchaseQty), mdCogsData.purchaseValue],
-            ["Closing Stock", mdCogsData.closingStockQty, calculateRate(mdCogsData.closingStockValue, mdCogsData.closingStockQty), mdCogsData.closingStockValue]
+            ["Closing Stock", mdCogsData.closingStockQty, calculateRate(mdCogsData.closingStockValue, mdCogsData.closingStockQty), mdCogsData.closingStockValue],
+            ["Consumption MB", ((mdCogsData.openingStock + mdCogsData.purchaseQty) - (mdCogsData.closingStockQty)), calculateRate(((mdCogsData.openingStockValue + mdCogsData.purchaseValue) - (mdCogsData.closingStockValue)), ((mdCogsData.openingStock + mdCogsData.purchaseQty) - (mdCogsData.closingStockQty))), ((mdCogsData.openingStockValue + mdCogsData.purchaseValue) - (mdCogsData.closingStockValue))],
         ];
 
         const cpData = [
             ["CP", "", "", ""],
             ["Opening Stock", cpCogsData.openingStock, calculateRate(cpCogsData.openingStockValue, cpCogsData.openingStock), cpCogsData.openingStockValue],
             ["Purchase", cpCogsData.purchaseQty, calculateRate(cpCogsData.purchaseValue, cpCogsData.purchaseQty), cpCogsData.purchaseValue],
-            ["Closing Stock", cpCogsData.closingStockQty, calculateRate(cpCogsData.closingStockValue, cpCogsData.closingStockQty), cpCogsData.closingStockValue]
+            ["Closing Stock", cpCogsData.closingStockQty, calculateRate(cpCogsData.closingStockValue, cpCogsData.closingStockQty), cpCogsData.closingStockValue],
+            ["Consumption CP", ((cpCogsData.openingStock + cpCogsData.purchaseQty) - (cpCogsData.closingStockQty)), calculateRate(((cpCogsData.openingStockValue + cpCogsData.purchaseValue) - (cpCogsData.closingStockValue)), ((cpCogsData.openingStock + cpCogsData.purchaseQty) - (cpCogsData.closingStockQty))), ((cpCogsData.openingStockValue + cpCogsData.purchaseValue) - (cpCogsData.closingStockValue))]
         ];
 
         const rmData = [
@@ -2188,15 +2190,29 @@ app.get("/cogs", async (req, res) => {
             ["Opening Stock", rmConsumptionCogsData.openingStock, calculateRate(rmConsumptionCogsData.openingStockValue, rmConsumptionCogsData.openingStock), rmConsumptionCogsData.openingStockValue],
             ["Purchase", rmConsumptionCogsData.purchaseQty, calculateRate(rmConsumptionCogsData.purchaseValue, rmConsumptionCogsData.purchaseQty), rmConsumptionCogsData.purchaseValue],
             ["Sales", rmConsumptionCogsData.sales, calculateRate(rmConsumptionCogsData.salesValue, rmConsumptionCogsData.sales), rmConsumptionCogsData.salesValue],
-            ["Closing Stock", rmConsumptionCogsData.closingStock, calculateRate(rmConsumptionCogsData.closingStockValue, rmConsumptionCogsData.closingStock), rmConsumptionCogsData.closingStockValue]
+            ["Closing Stock", rmConsumptionCogsData.closingStock, calculateRate(rmConsumptionCogsData.closingStockValue, rmConsumptionCogsData.closingStock), rmConsumptionCogsData.closingStockValue],
+            ["Consumption RM", ((rmConsumptionCogsData.openingStock + rmConsumptionCogsData.purchaseQty) - (rmConsumptionCogsData.closingStock + rmConsumptionCogsData.sales)), calculateRate(((rmConsumptionCogsData.openingStockValue + rmConsumptionCogsData.purchaseValue) - (rmConsumptionCogsData.closingStockValue + rmConsumptionCogsData.salesValue)), ((rmConsumptionCogsData.openingStock + rmConsumptionCogsData.purchaseQty) - (rmConsumptionCogsData.closingStock + rmConsumptionCogsData.sales))), ((rmConsumptionCogsData.openingStockValue + rmConsumptionCogsData.purchaseValue) - (rmConsumptionCogsData.closingStockValue + rmConsumptionCogsData.salesValue))]
         ];
 
         const monofilData = [
             ["Monofilament", "", "", ""],
             ["Yarn Purchases", monofilCogsData.yarnPurchases, calculateRate(monofilCogsData.yarnValue, monofilCogsData.yarnPurchases), monofilCogsData.yarnValue],
             ["Purchase Fabric", monofilCogsData.purchaseFabric, calculateRate(monofilCogsData.purchaseFabricValue, monofilCogsData.purchaseFabric), monofilCogsData.purchaseFabricValue],
-            ["Consumables Purchase", "", "", monofilCogsData.consumablesPurchase]
+            ["Consumables Purchase", "", "", monofilCogsData.consumablesPurchase],
+            ["Total Purchase", (monofilCogsData.yarnPurchases + monofilCogsData.purchaseFabric), calculateRate((monofilCogsData.purchaseFabricValue + monofilCogsData.yarnValue + monofilCogsData.consumablesPurchase), (monofilCogsData.yarnPurchases + monofilCogsData.purchaseFabric)), (monofilCogsData.purchaseFabricValue + monofilCogsData.yarnValue + monofilCogsData.consumablesPurchase)],
+            ["Consumption Monofil", (monofilCogsData.yarnPurchases + monofilCogsData.purchaseFabric), calculateRate((monofilCogsData.purchaseFabricValue + monofilCogsData.yarnValue + monofilCogsData.consumablesPurchase), (monofilCogsData.yarnPurchases + monofilCogsData.purchaseFabric)), (monofilCogsData.purchaseFabricValue + monofilCogsData.yarnValue + monofilCogsData.consumablesPurchase)],
         ];
+
+        monofilData.push([
+            "Monofil Consumption",
+            monofilData.at(-1)[1] + rmData.at(-1)[1],
+            calculateRate(
+                monofilData.at(-1).at(-1) + rmData.at(-1).at(-1),
+                monofilData.at(-1)[1] + rmData.at(-1)[1]
+            ),
+            monofilData.at(-1).at(-1) + rmData.at(-1).at(-1)
+        ]);
+
 
         const totalCogsData = [
             ["Total COGS", "", "", ""],
