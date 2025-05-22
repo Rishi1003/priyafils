@@ -2250,20 +2250,94 @@ app.get("/cogs", async (req, res) => {
             ["Difference Stock", tradingCOGS.difference_stock, calculateRate(tradingCOGS.difference_stock_value, tradingCOGS.difference_stock), tradingCOGS.difference_stock_value]
         ];
 
-        // Determine the starting column for the new data
-        let startCol = 1; // Default to column B (1-based index, A is 0)
+        // // Determine the starting column for the new data
+        // let startCol = 1; // Default to column B (1-based index, A is 0)
+        // if (fileExists) {
+        //     // Find the last column with data in the header row (row 1)
+        //     const range = xlsx.utils.decode_range(ws['!ref']);
+        //     for (let col = range.s.c; col <= range.e.c; col++) {
+        //         const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
+        //         if (!ws[cellAddress] || !ws[cellAddress].v) {
+        //             startCol = col;
+        //             break;
+        //         }
+        //     }
+        //     // If no empty column found, append after the last column
+        //     if (startCol === 1) {
+        //         startCol = range.e.c + 1;
+        //     }
+        // }
+
+        // // Prepare the data to append
+        // const allData = [
+        //     ...hdpeData, [""],
+        //     ...mdData, [""],
+        //     ...cpData, [""],
+        //     ...rmData, [""],
+        //     ...monofilData, [""],
+        //     ...totalCogsData, [""],
+        //     ...monofilSFGOpening, [""],
+        //     ...monofilSFGPurchase, [""],
+        //     ...monofilSFGClosing, [""],
+        //     ...tradingData
+        // ];
+
+        // // If file doesn't exist, add headers and particulars
+        // if (!fileExists) {
+        //     const headers = [
+        //         ["Particulars", monthHeader, "", ""],
+        //         ["", "Qty", "Rate", "Value"]
+        //     ];
+        //     xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
+        //     // Add particulars in the first column
+        //     const particulars = allData.map(row => [row[0]]);
+        //     xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
+        // } else {
+        //     // Update header with new month
+        //     xlsx.utils.sheet_add_aoa(ws, [[monthHeader, "", ""]], { origin: { r: 0, c: startCol } });
+        //     xlsx.utils.sheet_add_aoa(ws, [["Qty", "Rate", "Value"]], { origin: { r: 1, c: startCol } });
+        // }
+
+        // // Add new data (Qty, Rate, Value) starting from the third row
+        // let rowIndex = 2; // Start from row 3 (0-based index)
+        // for (const section of allData) {
+        //     if (section[0] !== "") { // Only write non-empty rows
+        //         const dataRow = section.slice(1); // Take Qty, Rate, Value
+        //         xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
+        //     }
+        //     rowIndex++; // Increment rowIndex for all rows, including empty ones
+        // }
+
+        // // Set column widths
+        // ws['!cols'] = ws['!cols'] || [];
+        // for (let i = 0; i < startCol + 4; i++) {
+        //     ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 25 : 15 };
+        // }
+
+        // // Add or update worksheet in workbook
+        // if (!fileExists) {
+        //     xlsx.utils.book_append_sheet(wb, ws, "COGS");
+        // }
+
+        // // Write the file
+        // xlsx.writeFile(wb, filePath);
+        // console.log(`📊 Excel file updated: ${filePath}`);
+
+        // return res.json({ message: 'COGS data extracted and added successfully' });
+
+        let startCol = 1;
         if (fileExists) {
-            // Find the last column with data in the header row (row 1)
             const range = xlsx.utils.decode_range(ws['!ref']);
-            for (let col = range.s.c; col <= range.e.c; col++) {
+            let found = false;
+            for (let col = 1; col <= range.e.c; col += 3) {
                 const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
                 if (!ws[cellAddress] || !ws[cellAddress].v) {
                     startCol = col;
+                    found = true;
                     break;
                 }
             }
-            // If no empty column found, append after the last column
-            if (startCol === 1) {
+            if (!found) {
                 startCol = range.e.c + 1;
             }
         }
@@ -2282,44 +2356,47 @@ app.get("/cogs", async (req, res) => {
             ...tradingData
         ];
 
-        // If file doesn't exist, add headers and particulars
+        // If file doesn't exist, create headers and first column
         if (!fileExists) {
             const headers = [
                 ["Particulars", monthHeader, "", ""],
                 ["", "Qty", "Rate", "Value"]
             ];
             xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
+
             // Add particulars in the first column
             const particulars = allData.map(row => [row[0]]);
             xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
         } else {
-            // Update header with new month
+            // Update existing file by adding month column
             xlsx.utils.sheet_add_aoa(ws, [[monthHeader, "", ""]], { origin: { r: 0, c: startCol } });
             xlsx.utils.sheet_add_aoa(ws, [["Qty", "Rate", "Value"]], { origin: { r: 1, c: startCol } });
         }
 
-        // Add new data (Qty, Rate, Value) starting from the third row
-        let rowIndex = 2; // Start from row 3 (0-based index)
+        // Append new month's data
+        let rowIndex = 2;
         for (const section of allData) {
-            if (section[0] !== "") { // Only write non-empty rows
-                const dataRow = section.slice(1); // Take Qty, Rate, Value
+            if (section[0] !== "") {
+                const dataRow = section.slice(1); // Qty, Rate, Value
                 xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
             }
-            rowIndex++; // Increment rowIndex for all rows, including empty ones
+            rowIndex++;
         }
 
         // Set column widths
         ws['!cols'] = ws['!cols'] || [];
-        for (let i = 0; i < startCol + 4; i++) {
-            ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 25 : 15 };
+        for (let i = 0; i <= startCol + 3; i++) {
+            if (!ws['!cols'][i]) {
+                ws['!cols'][i] = { wch: i === 0 ? 25 : 15 };
+            }
         }
 
-        // Add or update worksheet in workbook
+        // Append or update the worksheet
         if (!fileExists) {
             xlsx.utils.book_append_sheet(wb, ws, "COGS");
         }
 
-        // Write the file
+        // Save the workbook
         xlsx.writeFile(wb, filePath);
         console.log(`📊 Excel file updated: ${filePath}`);
 
@@ -2748,59 +2825,130 @@ app.get("/pal1", async (req, res) => {
             ["Profit A", "", "", pal1Data.ProfitA]
         ];
 
+        // // Determine the starting column for the new data
+        // let startCol = 1; // Default to column B (1-based index, A is 0)
+        // if (fileExists) {
+        //     const range = xlsx.utils.decode_range(ws['!ref']);
+        //     for (let col = range.s.c; col <= range.e.c; col++) {
+        //         const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
+        //         if (!ws[cellAddress] || !ws[cellAddress].v) {
+        //             startCol = col;
+        //             break;
+        //         }
+        //     }
+        //     if (startCol === 1) {
+        //         startCol = range.e.c + 1;
+        //     }
+        // }
+
+        // // If file doesn't exist, add headers and particulars
+        // if (!fileExists) {
+        //     const headers = [
+        //         ["Particulars", monthHeader, "", ""],
+        //         ["", "Qty", "Rate", "Value"]
+        //     ];
+        //     xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
+        //     const particulars = pal1ExcelData.map(row => [row[0]]);
+        //     xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
+        // } else {
+        //     xlsx.utils.sheet_add_aoa(ws, [[monthHeader, "", ""]], { origin: { r: 0, c: startCol } });
+        //     xlsx.utils.sheet_add_aoa(ws, [["Qty", "Rate", "Value"]], { origin: { r: 1, c: startCol } });
+        // }
+
+        // // Add new data (Qty, Rate, Value) starting from the third row
+        // let rowIndex = 2; // Start from row 3 (0-based index)
+        // for (const section of pal1ExcelData) {
+        //     const dataRow = section.slice(1); // Take Qty, Rate, Value
+        //     xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
+        //     rowIndex++;
+        // }
+
+        // // Set column widths
+        // ws['!cols'] = ws['!cols'] || [];
+        // for (let i = 0; i < startCol + 4; i++) {
+        //     ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 25 : 15 };
+        // }
+
+        // // Add or update worksheet in workbook
+        // if (!fileExists) {
+        //     xlsx.utils.book_append_sheet(wb, ws, "PAL1");
+        // }
+
+        // // Write the file
+        // xlsx.writeFile(wb, filePath);
+        // console.log(`📊 Excel file updated: ${filePath}`);
+
+        // await prisma.pal1.upsert({
+        //     where: { time_id: timeRecord.id },
+        //     update: { ...pal1Data },
+        //     create: { time_id: timeRecord.id, ...pal1Data },
+        // });
+        // console.log('📊 PAL1 Data upserted:', pal1Data);
+
+        // return res.json({ message: 'PAL1 data extracted and added successfully' });
+
+
         // Determine the starting column for the new data
-        let startCol = 1; // Default to column B (1-based index, A is 0)
+        let startCol = 1; // Default to column B (A = 0)
         if (fileExists) {
             const range = xlsx.utils.decode_range(ws['!ref']);
-            for (let col = range.s.c; col <= range.e.c; col++) {
+            let found = false;
+            for (let col = 1; col <= range.e.c; col += 3) {
                 const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
                 if (!ws[cellAddress] || !ws[cellAddress].v) {
                     startCol = col;
+                    found = true;
                     break;
                 }
             }
-            if (startCol === 1) {
+            if (!found) {
                 startCol = range.e.c + 1;
             }
         }
 
-        // If file doesn't exist, add headers and particulars
+        // If file doesn't exist, create headers and first column
         if (!fileExists) {
             const headers = [
                 ["Particulars", monthHeader, "", ""],
                 ["", "Qty", "Rate", "Value"]
             ];
             xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
+
+            // Add particulars in the first column
             const particulars = pal1ExcelData.map(row => [row[0]]);
             xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
         } else {
+            // Add headers for new month
             xlsx.utils.sheet_add_aoa(ws, [[monthHeader, "", ""]], { origin: { r: 0, c: startCol } });
             xlsx.utils.sheet_add_aoa(ws, [["Qty", "Rate", "Value"]], { origin: { r: 1, c: startCol } });
         }
 
-        // Add new data (Qty, Rate, Value) starting from the third row
-        let rowIndex = 2; // Start from row 3 (0-based index)
-        for (const section of pal1ExcelData) {
-            const dataRow = section.slice(1); // Take Qty, Rate, Value
+        // Add new month's data
+        let rowIndex = 2;
+        for (const row of pal1ExcelData) {
+            const dataRow = row.slice(1); // Qty, Rate, Value
             xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
             rowIndex++;
         }
 
         // Set column widths
         ws['!cols'] = ws['!cols'] || [];
-        for (let i = 0; i < startCol + 4; i++) {
-            ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 25 : 15 };
+        for (let i = 0; i <= startCol + 3; i++) {
+            if (!ws['!cols'][i]) {
+                ws['!cols'][i] = { wch: i === 0 ? 25 : 15 };
+            }
         }
 
-        // Add or update worksheet in workbook
+        // Append or update the worksheet
         if (!fileExists) {
             xlsx.utils.book_append_sheet(wb, ws, "PAL1");
         }
 
-        // Write the file
+        // Save the workbook
         xlsx.writeFile(wb, filePath);
         console.log(`📊 Excel file updated: ${filePath}`);
 
+        // Upsert to database
         await prisma.pal1.upsert({
             where: { time_id: timeRecord.id },
             update: { ...pal1Data },
@@ -3124,17 +3272,19 @@ app.get('/trading-pl', async (req, res) => {
         ];
 
         // Determine the starting column for the new data
-        let startCol = 1; // Default to column B (1-based index, A is 0)
+        let startCol = 1; // Default to column B
         if (fileExists) {
             const range = xlsx.utils.decode_range(ws['!ref']);
-            for (let col = range.s.c; col <= range.e.c; col++) {
+            let found = false;
+            for (let col = 1; col <= range.e.c; col += 3) {
                 const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
                 if (!ws[cellAddress] || !ws[cellAddress].v) {
                     startCol = col;
+                    found = true;
                     break;
                 }
             }
-            if (startCol === 1) {
+            if (!found) {
                 startCol = range.e.c + 1;
             }
         }
@@ -3146,6 +3296,7 @@ app.get('/trading-pl', async (req, res) => {
                 ["", "Qty", "Value", "Rate"]
             ];
             xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
+
             const particulars = tradingPlExcelData.map(row => [row[0]]);
             xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
         } else {
@@ -3153,18 +3304,20 @@ app.get('/trading-pl', async (req, res) => {
             xlsx.utils.sheet_add_aoa(ws, [["Qty", "Value", "Rate"]], { origin: { r: 1, c: startCol } });
         }
 
-        // Add new data (Qty, Value, Rate) starting from the third row
-        let rowIndex = 2; // Start from row 3 (0-based index)
-        for (const section of tradingPlExcelData) {
-            const dataRow = section.slice(1); // Take Qty, Value, Rate
+        // Add new data (Qty, Value, Rate) starting from row 3
+        let rowIndex = 2;
+        for (const row of tradingPlExcelData) {
+            const dataRow = row.slice(1); // Qty, Value, Rate
             xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
             rowIndex++;
         }
 
         // Set column widths
         ws['!cols'] = ws['!cols'] || [];
-        for (let i = 0; i < startCol + 4; i++) {
-            ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 25 : 15 };
+        for (let i = 0; i <= startCol + 3; i++) {
+            if (!ws['!cols'][i]) {
+                ws['!cols'][i] = { wch: i === 0 ? 25 : 15 };
+            }
         }
 
         // Add or update worksheet in workbook
@@ -3176,6 +3329,7 @@ app.get('/trading-pl', async (req, res) => {
         xlsx.writeFile(wb, filePath);
         console.log(`📊 Excel file updated: ${filePath}`);
 
+        // Upsert to database
         await prisma.tradingPl.upsert({
             where: { time_id: timeRecord.id },
             update: { ...trading_pl },
@@ -3184,6 +3338,7 @@ app.get('/trading-pl', async (req, res) => {
         console.log('📊 TradingPl Data upserted:', trading_pl);
 
         return res.json({ message: 'Successfully created trading PL and generated Excel file', file: filePath });
+
 
     } catch (error) {
         console.error('❌ Error:', error);
@@ -3645,17 +3800,19 @@ app.get('/pal2', async (req, res) => {
         ];
 
         // Determine the starting column for the new data
-        let startCol = 1; // Default to column B (1-based index, A is 0)
+        let startCol = 1; // Default to column B
         if (fileExists) {
             const range = xlsx.utils.decode_range(ws['!ref']);
-            for (let col = range.s.c; col <= range.e.c; col++) {
+            let found = false;
+            for (let col = 1; col <= range.e.c; col += 4) {
                 const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
                 if (!ws[cellAddress] || !ws[cellAddress].v) {
                     startCol = col;
+                    found = true;
                     break;
                 }
             }
-            if (startCol === 1) {
+            if (!found) {
                 startCol = range.e.c + 1;
             }
         }
@@ -3667,6 +3824,7 @@ app.get('/pal2', async (req, res) => {
                 ["", "Cost %", "Qty", "Value", "Rate"]
             ];
             xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
+
             const particulars = pal2ExcelData.map(row => [row[0]]);
             xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
         } else {
@@ -3674,18 +3832,22 @@ app.get('/pal2', async (req, res) => {
             xlsx.utils.sheet_add_aoa(ws, [["Cost %", "Qty", "Value", "Rate"]], { origin: { r: 1, c: startCol } });
         }
 
-        // Add new data (Cost %, Qty, Value, Rate) starting from the third row
-        let rowIndex = 2; // Start from row 3 (0-based index)
-        for (const section of pal2ExcelData) {
-            const dataRow = section.slice(1); // Take Cost %, Qty, Value, Rate
+        // Add new data (Cost %, Qty, Value, Rate) starting from row 3
+        let rowIndex = 2;
+        for (const row of pal2ExcelData) {
+            const dataRow = row.slice(1); // Skip "Particular" and take the rest
             xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
             rowIndex++;
         }
 
         // Set column widths
         ws['!cols'] = ws['!cols'] || [];
-        for (let i = 0; i < startCol + 5; i++) {
-            ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 15 : i === 1 ? 10 : 15 };
+        for (let i = 0; i <= startCol + 4; i++) {
+            if (!ws['!cols'][i]) {
+                ws['!cols'][i] = {
+                    wch: i === 0 ? 20 : i === 1 ? 10 : 15
+                };
+            }
         }
 
         // Add or update worksheet in workbook
@@ -3705,7 +3867,11 @@ app.get('/pal2', async (req, res) => {
         });
         console.log('📊 PAL2 Data upserted:', pal2Data);
 
-        return res.json({ message: 'PAL2 data extracted, added, and Excel file generated successfully', file: filePath });
+        return res.json({
+            message: 'PAL2 data extracted, added, and Excel file generated successfully',
+            file: filePath
+        });
+
 
     } catch (error) {
         console.error('❌ Error:', error);
@@ -4937,6 +5103,171 @@ app.get('/salesSummary', async (req, res) => {
     } catch (error) {
         console.error('❌ Error:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+app.get("/ytd", async (req, res) => {
+    try {
+        //get date in this format 2024-03-01T00:00:00.000Z
+        const date = new Date();
+        //set date to first day of the month
+        date.setUTCDate(1);
+        //set time to 00:00:00
+        date.setUTCHours(0, 0, 0, 0);
+
+
+        const year = 2024; // Replace with user input (e.g., req.body.year or similar)
+
+        // Define the start (April 1st of the input year) and end (March 31st of the next year) in UTC
+        const startOfPeriod = new Date(Date.UTC(year, 3, 1, 0, 0, 0, 0)); // April 1, 2024, 00:00:00.000Z
+        const endOfPeriod = new Date(Date.UTC(year + 1, 3, 1, 0, 0, 0, 0)); // April 1, 2025, 00:00:00.000Z
+
+        const timeRecords = await prisma.timeRecord.findMany({
+            where: {
+                time: {
+                    gte: startOfPeriod, // Greater than or equal to April 1, 2024
+                    lt: endOfPeriod,    // Less than April 1, 2025
+                },
+            },
+        });
+
+        console.log("📊 Time Records:", timeRecords);
+
+        if (timeRecords.length === 0) {
+            return res.status(404).json({ message: 'No time records found for the given period' });
+        }
+
+        //get monog sales for each time record
+        const monoSales = await prisma.pal2.findMany({
+            where: {
+                time_id: {
+                    in: timeRecords.map((record) => record.id),
+                },
+            },
+        });
+
+        const hdpePurchase = await prisma.hdpeCogs.findMany({
+            where: {
+                time_id: {
+                    in: timeRecords.map((record) => record.id),
+                },
+            },
+        });
+
+        const mdPurchase = await prisma.mdCogs.findMany({
+            where: {
+                time_id: {
+                    in: timeRecords.map((record) => record.id),
+                },
+            },
+        });
+
+        const cpPurchase = await prisma.cpCogs.findMany({
+            where: {
+                time_id: {
+                    in: timeRecords.map((record) => record.id),
+                },
+            },
+        });
+
+        //sum of all records of hdpePurchase.purchaseQty + mdPurchase.purchaseQty + cpPurchase.purchaseQty
+        const rmPurchaseQty = mdPurchase.reduce((acc, record) => acc + record.purchaseQty, 0) +
+            hdpePurchase.reduce((acc, record) => acc + record.purchaseQty, 0) +
+            cpPurchase.reduce((acc, record) => acc + record.purchaseQty, 0);
+
+        const rmPurchaseValue = mdPurchase.reduce((acc, record) => acc + record.purchaseValue, 0) +
+            hdpePurchase.reduce((acc, record) => acc + record.purchaseValue, 0) +
+            cpPurchase.reduce((acc, record) => acc + record.purchaseValue, 0);
+
+
+        const aprilData = new Date(year, 3, 1);
+        const aprilRecord = await prisma.timeRecord.findFirst({
+            where: {
+                time: {
+                    gte: new Date(year, 3, 1),
+                    lt: new Date(year, 4, 1),
+                },
+            },
+        });
+
+        const rmOpneingStock = await prisma.rmConsumptionCogs.findUnique({
+            where: {
+                time_id: aprilRecord.id,
+            },
+        });
+
+        const rmSales = await prisma.rmConsumptionCogs.findMany({
+            where: {
+                time_id: {
+                    in: timeRecords.map((record) => record.id),
+                },
+            },
+        });
+
+        console.log("📊 RM Sales:", rmSales);
+
+        const rmSalesQty = rmSales.reduce((acc, record) => acc + record.purchaseQty, 0);
+        const rmSalesValue = rmSales.reduce((acc, record) => acc + record.purchaseValue, 0);
+
+        const mostLatestMonthRecord = await prisma.timeRecord.findFirst({
+            where: {
+                time: {
+                    gte: new Date(year, 3, 1),
+                    lt: new Date(year + 1, 3, 1),
+                },
+            },
+            orderBy: {
+                time: 'desc',
+            },
+        });
+
+
+        const hdpeClosingStock = await prisma.hdpeCogs.findUnique({
+            where: {
+                time_id: mostLatestMonthRecord.id,
+            },
+        });
+
+        const mdClosingStock = await prisma.mdCogs.findUnique({
+            where: {
+                time_id: mostLatestMonthRecord.id,
+            },
+        });
+
+        const cpClosingStock = await prisma.cpCogs.findUnique({
+            where: {
+                time_id: mostLatestMonthRecord.id,
+            },
+        });
+
+        console.log("📊 HDPE Closing Stock:", hdpeClosingStock);
+
+        const rmClosingStockQty = hdpeClosingStock.closingStockQty +
+            mdClosingStock.closingStockQty +
+            cpClosingStock.closingStockQty;
+
+        const rmClosingStockValue = hdpeClosingStock.closingStockValue +
+            mdClosingStock.closingStockValue +
+            cpClosingStock.closingStockValue;
+
+        const consumptionRmQty = (rmPurchaseQty + rmOpneingStock.openingStock) - (rmSalesQty + rmClosingStockQty);
+        const consumptionRmValue = (rmPurchaseValue + rmOpneingStock.openingStockValue) - (rmSalesValue + rmClosingStockValue);
+
+        console.log("📊 consumptionRM", (rmPurchaseQty + rmOpneingStock.openingStock), "-", (rmSalesQty));
+
+        const monoMfrData = {
+            //add all records of monosales.Monofil_Sales_Value
+            salesValue: monoSales.reduce((acc, record) => acc + record.Monofil_Sales_Value, 0),
+            //add all records of monosales.Monofil_Sales_Qty
+            salesQty: monoSales.reduce((acc, record) => acc + record.Monofil_Sales_Qty, 0),
+        }
+
+        console.log("📊 Mono MFR:", monoMfrData);
+
+    }
+    catch (error) {
+        console.error("❌ Error:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
     }
 });
 
