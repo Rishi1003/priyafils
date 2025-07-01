@@ -142,6 +142,10 @@ app.get("/stock-valuation", async (req, res) => {
                 qty: data[19] && data[19][0] ? data[19][0] : 0,
                 value: data[19] && data[19][2] ? data[19][2] : 0,
             },
+            difSFGnFG: {
+                qty: data[22] && data[22][0] ? data[22][0] : 0,
+                value: data[22] && data[22][2] ? data[22][2] : 0,
+            }
         };
 
         console.log('📊 Extracted Data:', extractedData);
@@ -724,6 +728,20 @@ app.get("/purchase", async (req, res) => {
 
         console.log('📊 Extracted TRDNGPurchase Data:', TRDNGPurchaseData);
 
+        const tradingPlPurchaseData = {
+            time_id: timeRecord.id, // Corrected to use `timeRecord.id` here
+            qty: data[2] && data[2][46] ? data[2][46] : 0,
+            value: data[2] && data[2][47] ? data[2][47] : 0,
+        }
+
+        const tradingPlPurchase = await prisma.tradingPLOtherPurchase.upsert({
+            where: { time_id: tradingPlPurchaseData.time_id },
+            update: tradingPlPurchaseData,
+            create: tradingPlPurchaseData,
+        });
+
+        console.log('📊 Extracted TradingPlPurchase Data:', tradingPlPurchaseData);
+
         return res.send({ message: 'Data extracted and added successfully for purchase' });
 
     } catch (error) {
@@ -843,6 +861,7 @@ app.get("/inventory-details", async (req, res) => {
             "Packing Materials / Old use Batteries",
             "HDPE Monofilament Waste",
             "Sale of Asset Etc",
+            "Master Batch",
             "Raw Material"
         ];
 
@@ -889,16 +908,16 @@ app.get("/inventory-details", async (req, res) => {
 
         const salesDetails = {
             time_id: timeRecord.id,
-            grandTotalValue: data[23] && data[23][3] ? data[23][3] : 0,
-            grandTotalOutward: data[23] && data[23][1] ? data[23][1] : 0,
-            otherIncome: data[24] && data[24][3] ? data[24][3] : 0,
-            grossSales: data[26] && data[26][3] ? data[26][3] : 0,
-            tax: data[27] && data[27][3] ? data[27][3] : 0,
-            tcs: data[28] && data[28][3] ? data[28][3] : 0,
-            discount: data[31] && data[31][3] ? data[31][3] : 0,
-            creditNote: data[33] && data[33][3] ? data[33][3] : 0,
-            pal1FinalSales: data[35] && data[35][3] ? data[35][3] : 0,
-            RMPurchaseForSales: data[38] && data[38][3] ? data[38][3] : 0,
+            grandTotalValue: data[23 + 1] && data[23 + 1][3] ? data[23 + 1][3] : 0,
+            grandTotalOutward: data[23 + 1] && data[23 + 1][1] ? data[23 + 1][1] : 0,
+            otherIncome: data[24 + 1] && data[24 + 1][3] ? data[24 + 1][3] : 0,
+            grossSales: data[26 + 1] && data[26 + 1][3] ? data[26 + 1][3] : 0,
+            tax: data[27 + 1] && data[27 + 1][3] ? data[27 + 1][3] : 0,
+            tcs: data[28 + 1] && data[28 + 1][3] ? data[28 + 1][3] : 0,
+            discount: data[31 + 1] && data[31 + 1][3] ? data[31 + 1][3] : 0,
+            creditNote: data[33 + 1] && data[33 + 1][3] ? data[33 + 1][3] : 0,
+            pal1FinalSales: data[35 + 1] && data[35 + 1][3] ? data[35 + 1][3] : 0,
+            RMPurchaseForSales: data[38 + 1] && data[38 + 1][3] ? data[38 + 1][3] : 0,
         }
 
         await prisma.salesDetails.upsert({
@@ -1071,6 +1090,23 @@ app.get("/direct-expenses", async (req, res) => {
             update: fixedExpensesData,
             create: fixedExpensesData,
         });
+
+        const tradingPLExpensesData = {
+            time_id: timeRecord.id,
+            conveyance_charges: data[49] && data[49][4] ? data[49][4] : 0,
+            salary_and_wages: data[50] && data[50][4] ? data[50][4] : 0,
+            commission_on_sales: data[51] && data[51][4] ? data[51][4] : 0,
+            travelling_charges: data[52] && data[52][4] ? data[52][4] : 0,
+        }
+
+        console.log('📊 Extracted Trading PL Expenses Data:', tradingPLExpensesData);
+
+        await prisma.tradingPLExpenses.upsert({
+            where: { time_id: tradingPLExpensesData.time_id },
+            update: tradingPLExpensesData,
+            create: tradingPLExpensesData,
+        });
+
 
         console.log('📊 Extracted Fixed Expenses Data:', fixedExpensesData);
 
@@ -1273,581 +1309,6 @@ app.get("/indirect-expenses", async (req, res) => {
 
 //output files routes
 
-// app.get("/cogs", async (req, res) => {
-
-//     try {
-
-//         const month = req.query.month
-
-//         const date = parseExcelDate(month);
-
-//         const timeRecord = await prisma.timeRecord.findUnique({
-//             where: {
-//                 time: date,
-//             },
-//         });
-
-//         if (!timeRecord) {
-//             return res.status(404).json({ message: 'Time record not found for the given date' });
-//         }
-
-//         const oneMonthBackRecord = await prisma.timeRecord.findFirst({
-//             where: {
-//                 time: new Date(date.setMonth(date.getMonth() - 1)),
-//             }
-//         });
-
-//         if (!oneMonthBackRecord) {
-//             return res.status(404).json({ message: 'Time record not found for the previous month' });
-//         }
-
-
-
-//         const stockValuation = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//             }
-//         });
-
-
-//         const purchaseData = await prisma.hdpePurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-
-//         const inventoryDetails = await prisma.inventoryDetails.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "Raw Material"
-//             }
-//         });
-
-//         const salesDetails = await prisma.salesDetails.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             }
-//         });
-
-//         console.log('📊 Shadenet and PP Fabric:', salesDetails);
-
-
-//         const purchaseDiscount = await prisma.ConsumablesPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-
-
-//         const stockValuationNext = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 material_type: "hdpeGranules"
-//             }
-//         });
-
-//         const hdpeCogsData = {
-//             openingStock: stockValuation ? stockValuation[0].qty : 0,
-//             openingStockValue: stockValuation ? stockValuation[0].value : 0,
-
-//             purchaseQty: purchaseData ? purchaseData.kgs : 0,
-//             purchaseValue: purchaseDiscount && purchaseData ? purchaseData.value - purchaseDiscount.discount : 0,
-
-//             // consumables: dont know where to get data from 
-//             // purchaseReturn: dont know where to get data from 
-
-//             salesQty: inventoryDetails ? inventoryDetails[0].outwardQty : 0,
-//             salesValue: inventoryDetails && salesDetails ? salesDetails.RMPurchaseForSales : 0, // minus some value should be done where to get that value from
-
-//             closingStockQty: stockValuationNext ? stockValuationNext[0].qty : 0,
-//             closingStockValue: stockValuationNext ? stockValuationNext[0].value : 0,
-
-//         }
-
-//         console.log('📊 HDPE COGS Data:', hdpeCogsData);
-
-
-//         const mBStockData = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 material_type: "masterBatches"
-//             }
-//         });
-
-//         const mBPurchaseData = await prisma.mBPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const mBClosingStockData = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 material_type: "masterBatches"
-//             }
-//         });
-
-
-//         const mdCogsData = {
-//             openingStock: mBStockData ? mBStockData[0].qty : 0,
-//             openingStockValue: mBStockData ? mBStockData[0].value : 0, //actual value is different from the db value even in the excel the ref is not there
-
-//             purchaseQty: mBPurchaseData ? mBPurchaseData.kgs : 0,
-//             purchaseValue: mBPurchaseData ? mBPurchaseData.value : 0,
-
-//             closingStockQty: mBClosingStockData ? mBClosingStockData[0].qty : 0,
-//             closingStockValue: mBClosingStockData ? mBClosingStockData[0].value : 0,
-//         }
-
-//         console.log('📊 MD COGS Data:', mdCogsData);
-
-//         const cpOpeningStockData = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 material_type: "colourPigments"
-//             }
-//         });
-
-//         const cpPurchaseData = await prisma.cPPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const cpClosingStockData = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 material_type: "colourPigments"
-//             }
-//         });
-
-//         const cpCogsData = {
-
-//             openingStock: cpOpeningStockData ? cpOpeningStockData[0].qty : 0,
-//             openingStockValue: cpOpeningStockData ? cpOpeningStockData[0].value : 0,
-
-//             purchaseQty: cpPurchaseData ? cpPurchaseData.kgs : 0,
-//             purchaseValue: cpPurchaseData ? cpPurchaseData.value : 0,
-
-//             closingStockQty: cpClosingStockData ? cpClosingStockData[0].qty : 0,
-//             closingStockValue: cpClosingStockData ? cpClosingStockData[0].value : 0,
-
-//         }
-
-//         console.log('📊 CP COGS Data:', cpCogsData);
-
-//         const rmConsumptionCogsData = {
-//             openingStock: (cpCogsData?.openingStock || 0) + (mdCogsData?.openingStock || 0) + (hdpeCogsData?.openingStock || 0),
-//             openingStockValue: (cpCogsData?.openingStockValue || 0) + (mdCogsData?.openingStockValue || 0) + (hdpeCogsData?.openingStockValue || 0),
-
-//             purchaseQty: (cpCogsData?.purchaseQty || 0) + (mdCogsData?.purchaseQty || 0) + (hdpeCogsData?.purchaseQty || 0),
-//             purchaseValue: (cpCogsData?.purchaseValue || 0) + (mdCogsData?.purchaseValue || 0) + (hdpeCogsData?.purchaseValue || 0),
-
-//             sales: hdpeCogsData?.salesQty || 0,
-//             salesValue: hdpeCogsData?.salesValue || 0,
-
-//             closingStock: (cpCogsData?.closingStockQty || 0) + (mdCogsData?.closingStockQty || 0) + (hdpeCogsData?.closingStockQty || 0),
-//             closingStockValue: (cpCogsData?.closingStockValue || 0) + (mdCogsData?.closingStockValue || 0) + (hdpeCogsData?.closingStockValue || 0),
-//         };
-
-//         console.log('📊 RM Consumption COGS Data:', rmConsumptionCogsData);
-
-//         const yarnPurchaseData = await prisma.yarnPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const sravyaOthersData = await prisma.sravyaOthersPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const consumablesData = await prisma.ConsumablesPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const monofilCogsData = {
-//             yarnPurchases: yarnPurchaseData ? yarnPurchaseData.kgs : 0,
-//             yarnValue: yarnPurchaseData ? yarnPurchaseData.value : 0,
-
-//             purchaseFabric: sravyaOthersData ? sravyaOthersData.kgs : 0,
-//             purchaseFabricValue: sravyaOthersData ? sravyaOthersData.value : 0,
-
-//             consumablesPurchase: consumablesData ? consumablesData.value : 0,
-//         }
-
-//         console.log('📊 Monofilament COGS Data:', monofilCogsData);
-
-//         const stockvaluationData = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 material_type: "shadenet_fabrics_weed_mat"
-//             }
-//         });
-
-
-//         //more data needs to come from tradingPL
-//         const tradingConsumptionCogsData = {
-//             openingStock: stockvaluationData ? stockvaluationData[0].qty : 0,
-//         }
-
-//         console.log('📊 Trading Consumption COGS Data:', tradingConsumptionCogsData);
-
-
-//         const totalCogsDataCOGS = {
-//             openingStock: rmConsumptionCogsData.openingStock || 0,  // + monofilCogsData openingstock
-//             openingStockValue: rmConsumptionCogsData.openingStockValue || 0, // + monofilCogsData openingstockvalue  
-
-//             purchaseHD: hdpeCogsData.purchaseQty || 0,
-//             purchaseHDValue: hdpeCogsData.purchaseValue || 0,
-
-//             purchaseMD: mdCogsData.purchaseQty || 0,
-//             purchaseMDValue: mdCogsData.purchaseValue || 0,
-
-//             purchaseMonofil: monofilCogsData.yarnPurchases || 0,
-//             purchaseMonofilValue: monofilCogsData.yarnValue || 0,
-
-//             // purchaseTrading: tradingConsumptionCogsData.openingStock || 0, // need to get data from tradingPL
-//             rmSales: rmConsumptionCogsData.sales || 0,
-//             rmSalesValue: rmConsumptionCogsData.salesValue || 0,
-
-//             closingStock: rmConsumptionCogsData.closingStock || 0, // + monofilCogsData closingstock
-//             closingStockValue: rmConsumptionCogsData.closingStockValue || 0, // + tradingConsumption closingstockvalue  
-//         }
-
-//         console.log('📊 Total COGS Data:', totalCogsDataCOGS);
-
-//         const stockVal = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 AND: {
-//                     material_type: {
-//                         in: ["hdpe_tape_factory", "hdpe_tape_job_work"]
-//                     }
-//                 }
-//             }
-//         });
-
-//         const stockValFrabric = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 material_type: "hdpe_fishnet_fabrics"
-//             }
-//         });
-
-//         const monofilSFGnFGOpeningStockCOGS = {
-//             sfg_yarn: (stockVal[0] ? stockVal[0].qty : 0) + (stockVal[1] ? stockVal[1].qty : 0),
-//             sfg_yarn_value: (stockVal[0] ? stockVal[0].value : 0) + (stockVal[1] ? stockVal[1].value : 0),
-
-//             fg_fabric: stockValFrabric ? stockValFrabric[0].qty : 0,
-//             fg_fabric_value: stockValFrabric ? stockValFrabric[0].value : 0,
-//         }
-
-//         console.log('📊 monofilSFG openingstock', monofilSFGnFGOpeningStockCOGS);
-
-//         const purchaseYarn = await prisma.yarnPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const monofilSFGnFGPurchaseCOGS = {
-
-//             sfg_yarn: purchaseYarn ? purchaseYarn.kgs : 0,
-//             sfg_yarn_value: purchaseYarn ? purchaseYarn.value : 0,
-
-//             fg_fabric: sravyaOthersData ? sravyaOthersData.kgs : 0,
-//             fg_fabric_value: sravyaOthersData ? sravyaOthersData.value : 0,
-
-//             consumables: consumablesData ? consumablesData.value : 0,
-//         }
-
-//         console.log('📊 monofilSFG purchase', monofilSFGnFGPurchaseCOGS);
-
-//         const stockValClosing = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 AND: {
-//                     material_type: {
-//                         in: ["hdpe_tape_factory", "hdpe_tape_job_work"]
-//                     }
-//                 }
-//             }
-//         });
-
-//         const stockValFrabricClosing = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 material_type: "hdpe_fishnet_fabrics"
-//             }
-//         });
-
-//         const monogilSFGnFGClosingStockCOGS = {
-//             sfg_yarn: (stockValClosing[0] ? stockValClosing[0].qty : 0) + (stockValClosing[1] ? stockValClosing[1].qty : 0),
-//             sfg_yarn_value: (stockValClosing[0] ? stockValClosing[0].value : 0) + (stockValClosing[1] ? stockValClosing[1].value : 0),
-
-//             fg_fabric: stockValFrabricClosing ? stockValFrabricClosing[0].qty : 0,
-//             fg_fabric_value: stockValFrabricClosing ? stockValFrabricClosing[0].value : 0,
-//         }
-
-//         console.log('📊 monofilSFG closingstock', monogilSFGnFGClosingStockCOGS);
-
-//         const stockvalOpening = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 material_type: "shadenet_fabrics_weed_mat"
-//             }
-//         });
-
-//         const stockValClosingStock = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 AND: {
-//                     material_type: {
-//                         in: ["shadenet_fabrics_weed_mat", "pp_fabric_sacks"]
-//                     }
-//                 }
-//             }
-//         });
-
-//         const tradingCOGS = {
-//             openingStock: stockvalOpening ? stockvalOpening[0].qty : 0,
-//             openingStockValue: stockvalOpening ? stockvalOpening[0].value : 0,
-
-//             closingStock: (stockValClosingStock[0] ? stockValClosingStock[0].qty : 0) + (stockValClosingStock[1] ? stockValClosingStock[1].qty : 0),
-//             closingStockValue: (stockValClosingStock[0] ? stockValClosingStock[0].value : 0) + (stockValClosingStock[1] ? stockValClosingStock[1].value : 0),
-//         }
-
-//         tradingCOGS.difference_stock = Math.abs(tradingCOGS.openingStock - tradingCOGS.closingStock);
-//         tradingCOGS.difference_stock_value = Math.abs(tradingCOGS.openingStockValue - tradingCOGS.closingStockValue);
-
-//         console.log('📊 Trading COGS', tradingCOGS);
-
-//         await prisma.hdpeCogs.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...hdpeCogsData },
-//             create: { time_id: timeRecord.id, ...hdpeCogsData },
-//         });
-//         console.log('📊 HDPE COGS Data upserted:', hdpeCogsData);
-
-//         await prisma.mdCogs.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...mdCogsData },
-//             create: { time_id: timeRecord.id, ...mdCogsData },
-//         });
-//         console.log('📊 MD COGS Data upserted:', mdCogsData);
-
-//         await prisma.cpCogs.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...cpCogsData },
-//             create: { time_id: timeRecord.id, ...cpCogsData },
-//         });
-//         console.log('📊 CP COGS Data upserted:', cpCogsData);
-
-//         await prisma.rmConsumptionCogs.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...rmConsumptionCogsData },
-//             create: { time_id: timeRecord.id, ...rmConsumptionCogsData },
-//         });
-//         console.log('📊 RM Consumption COGS Data upserted:', rmConsumptionCogsData);
-
-//         await prisma.monofilCogs.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...monofilCogsData },
-//             create: { time_id: timeRecord.id, ...monofilCogsData },
-//         });
-//         console.log('📊 Monofilament COGS Data upserted:', monofilCogsData);
-
-//         await prisma.totalCogs.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...totalCogsDataCOGS },
-//             create: { time_id: timeRecord.id, ...totalCogsDataCOGS },
-//         });
-//         console.log('📊 Total COGS Data upserted:', totalCogsDataCOGS);
-
-//         await prisma.monofilSFGnFGOpeningStock.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...monofilSFGnFGOpeningStockCOGS },
-//             create: { time_id: timeRecord.id, ...monofilSFGnFGOpeningStockCOGS },
-//         });
-//         console.log('📊 Monofil SFG Opening Stock upserted:', monofilSFGnFGOpeningStockCOGS);
-
-//         await prisma.monofilSFGnFGPurchase.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...monofilSFGnFGPurchaseCOGS },
-//             create: { time_id: timeRecord.id, ...monofilSFGnFGPurchaseCOGS },
-//         });
-//         console.log('📊 Monofil SFG Purchase upserted:', monofilSFGnFGPurchaseCOGS);
-
-//         await prisma.monofilSFGnFGClosingStock.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...monogilSFGnFGClosingStockCOGS },
-//             create: { time_id: timeRecord.id, ...monogilSFGnFGClosingStockCOGS },
-//         });
-//         console.log('📊 Monofil SFG Closing Stock upserted:', monogilSFGnFGClosingStockCOGS);
-
-//         await prisma.tradingCogs.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...tradingCOGS },
-//             create: { time_id: timeRecord.id, ...tradingCOGS },
-//         });
-//         console.log('📊 Trading COGS upserted:', tradingCOGS);
-
-//         // Create a new workbook and worksheet
-//         const wb = xlsx.utils.book_new();
-//         const ws = xlsx.utils.json_to_sheet([], { skipHeader: true }); // Start with an empty sheet
-
-//         // Define the header row
-//         const monthHeader = req.query.month; // You can dynamically set this based on the `month` query param if needed
-//         const headers = [
-//             ["Particulars", monthHeader, "", ""], // Empty cells for alignment
-//             ["", "Qty", "Rate", "Value"] // Column headers
-//         ];
-
-//         // Helper function to calculate rate (value/qty) and handle division by zero
-//         const calculateRate = (value, qty) => qty !== 0 ? (value / qty).toFixed(2) : 0;
-
-//         // HDPE COGS Data
-//         const hdpeData = [
-//             ["HDPE", "", "", ""], // Section header
-//             ["Opening Stock", hdpeCogsData.openingStock, calculateRate(hdpeCogsData.openingStockValue, hdpeCogsData.openingStock), hdpeCogsData.openingStockValue],
-//             ["Purchase", hdpeCogsData.purchaseQty, calculateRate(hdpeCogsData.purchaseValue, hdpeCogsData.purchaseQty), hdpeCogsData.purchaseValue],
-//             ["Sales", hdpeCogsData.salesQty, calculateRate(hdpeCogsData.salesValue, hdpeCogsData.salesQty), hdpeCogsData.salesValue],
-//             ["Closing Stock", hdpeCogsData.closingStockQty, calculateRate(hdpeCogsData.closingStockValue, hdpeCogsData.closingStockQty), hdpeCogsData.closingStockValue],
-//             ["Consumption HDPE",
-//                 hdpeCogsData.openingStock + hdpeCogsData.purchaseQty - (hdpeCogsData.salesQty + hdpeCogsData.closingStockQty),
-//                 calculateRate(
-//                     hdpeCogsData.openingStockValue + hdpeCogsData.purchaseValue - (hdpeCogsData.salesValue + hdpeCogsData.closingStockValue),
-//                     hdpeCogsData.openingStock + hdpeCogsData.purchaseQty - (hdpeCogsData.salesQty + hdpeCogsData.closingStockQty)
-//                 ),
-//                 hdpeCogsData.openingStockValue + hdpeCogsData.purchaseValue - (hdpeCogsData.salesValue + hdpeCogsData.closingStockValue)
-//             ],
-//         ];
-
-//         // MD COGS Data
-//         const mdData = [
-//             ["MD", "", "", ""], // Section header
-//             ["Opening Stock", mdCogsData.openingStock, calculateRate(mdCogsData.openingStockValue, mdCogsData.openingStock), mdCogsData.openingStockValue],
-//             ["Purchase", mdCogsData.purchaseQty, calculateRate(mdCogsData.purchaseValue, mdCogsData.purchaseQty), mdCogsData.purchaseValue],
-//             ["Closing Stock", mdCogsData.closingStockQty, calculateRate(mdCogsData.closingStockValue, mdCogsData.closingStockQty), mdCogsData.closingStockValue]
-//         ];
-
-//         // CP COGS Data
-//         const cpData = [
-//             ["CP", "", "", ""], // Section header
-//             ["Opening Stock", cpCogsData.openingStock, calculateRate(cpCogsData.openingStockValue, cpCogsData.openingStock), cpCogsData.openingStockValue],
-//             ["Purchase", cpCogsData.purchaseQty, calculateRate(cpCogsData.purchaseValue, cpCogsData.purchaseQty), cpCogsData.purchaseValue],
-//             ["Closing Stock", cpCogsData.closingStockQty, calculateRate(cpCogsData.closingStockValue, cpCogsData.closingStockQty), cpCogsData.closingStockValue]
-//         ];
-
-//         // RM Consumption COGS Data
-//         const rmData = [
-//             ["RM Consumption", "", "", ""], // Section header
-//             ["Opening Stock", rmConsumptionCogsData.openingStock, calculateRate(rmConsumptionCogsData.openingStockValue, rmConsumptionCogsData.openingStock), rmConsumptionCogsData.openingStockValue],
-//             ["Purchase", rmConsumptionCogsData.purchaseQty, calculateRate(rmConsumptionCogsData.purchaseValue, rmConsumptionCogsData.purchaseQty), rmConsumptionCogsData.purchaseValue],
-//             ["Sales", rmConsumptionCogsData.sales, calculateRate(rmConsumptionCogsData.salesValue, rmConsumptionCogsData.sales), rmConsumptionCogsData.salesValue],
-//             ["Closing Stock", rmConsumptionCogsData.closingStock, calculateRate(rmConsumptionCogsData.closingStockValue, rmConsumptionCogsData.closingStock), rmConsumptionCogsData.closingStockValue]
-//         ];
-
-//         // Monofilament COGS Data
-//         const monofilData = [
-//             ["Monofilament", "", "", ""], // Section header
-//             ["Yarn Purchases", monofilCogsData.yarnPurchases, calculateRate(monofilCogsData.yarnValue, monofilCogsData.yarnPurchases), monofilCogsData.yarnValue],
-//             ["Purchase Fabric", monofilCogsData.purchaseFabric, calculateRate(monofilCogsData.purchaseFabricValue, monofilCogsData.purchaseFabric), monofilCogsData.purchaseFabricValue],
-//             ["Consumables Purchase", "", "", monofilCogsData.consumablesPurchase] // No qty for consumables
-//         ];
-
-//         // Total COGS Data
-//         const totalCogsData = [
-//             ["Total COGS", "", "", ""], // Section header
-//             ["Opening Stock", totalCogsDataCOGS.openingStock, calculateRate(totalCogsDataCOGS.openingStockValue, totalCogsDataCOGS.openingStock), totalCogsDataCOGS.openingStockValue],
-//             ["Purchase HD", totalCogsDataCOGS.purchaseHD, calculateRate(totalCogsDataCOGS.purchaseHDValue, totalCogsDataCOGS.purchaseHD), totalCogsDataCOGS.purchaseHDValue],
-//             ["Purchase MD", totalCogsDataCOGS.purchaseMD, calculateRate(totalCogsDataCOGS.purchaseMDValue, totalCogsDataCOGS.purchaseMD), totalCogsDataCOGS.purchaseMDValue],
-//             ["Purchase Monofil", totalCogsDataCOGS.purchaseMonofil, calculateRate(totalCogsDataCOGS.purchaseMonofilValue, totalCogsDataCOGS.purchaseMonofil), totalCogsDataCOGS.purchaseMonofilValue],
-//             ["RM Sales", totalCogsDataCOGS.rmSales, calculateRate(totalCogsDataCOGS.rmSalesValue, totalCogsDataCOGS.rmSales), totalCogsDataCOGS.rmSalesValue],
-//             ["Closing Stock", totalCogsDataCOGS.closingStock, calculateRate(totalCogsDataCOGS.closingStockValue, totalCogsDataCOGS.closingStock), totalCogsDataCOGS.closingStockValue]
-//         ];
-
-//         // Monofil SFG/FG Opening Stock
-//         const monofilSFGOpening = [
-//             ["Monofil SFG/FG Opening Stock", "", "", ""], // Section header
-//             ["SFG Yarn", monofilSFGnFGOpeningStockCOGS.sfg_yarn, calculateRate(monofilSFGnFGOpeningStockCOGS.sfg_yarn_value, monofilSFGnFGOpeningStockCOGS.sfg_yarn), monofilSFGnFGOpeningStockCOGS.sfg_yarn_value],
-//             ["FG Fabric", monofilSFGnFGOpeningStockCOGS.fg_fabric, calculateRate(monofilSFGnFGOpeningStockCOGS.fg_fabric_value, monofilSFGnFGOpeningStockCOGS.fg_fabric), monofilSFGnFGOpeningStockCOGS.fg_fabric_value]
-//         ];
-
-//         // Monofil SFG/FG Purchase
-//         const monofilSFGPurchase = [
-//             ["Monofil SFG/FG Purchase", "", "", ""], // Section header
-//             ["SFG Yarn", monofilSFGnFGPurchaseCOGS.sfg_yarn, calculateRate(monofilSFGnFGPurchaseCOGS.sfg_yarn_value, monofilSFGnFGPurchaseCOGS.sfg_yarn), monofilSFGnFGPurchaseCOGS.sfg_yarn_value],
-//             ["FG Fabric", monofilSFGnFGPurchaseCOGS.fg_fabric, calculateRate(monofilSFGnFGPurchaseCOGS.fg_fabric_value, monofilSFGnFGPurchaseCOGS.fg_fabric), monofilSFGnFGPurchaseCOGS.fg_fabric_value],
-//             ["Consumables", "", "", monofilSFGnFGPurchaseCOGS.consumables]
-//         ];
-
-//         // Monofil SFG/FG Closing Stock
-//         const monofilSFGClosing = [
-//             ["Monofil SFG/FG Closing Stock", "", "", ""], // Section header
-//             ["SFG Yarn", monogilSFGnFGClosingStockCOGS.sfg_yarn, calculateRate(monogilSFGnFGClosingStockCOGS.sfg_yarn_value, monogilSFGnFGClosingStockCOGS.sfg_yarn), monogilSFGnFGClosingStockCOGS.sfg_yarn_value],
-//             ["FG Fabric", monogilSFGnFGClosingStockCOGS.fg_fabric, calculateRate(monogilSFGnFGClosingStockCOGS.fg_fabric_value, monogilSFGnFGClosingStockCOGS.fg_fabric), monogilSFGnFGClosingStockCOGS.fg_fabric_value]
-//         ];
-
-//         // Trading COGS
-//         const tradingData = [
-//             ["Trading COGS", "", "", ""], // Section header
-//             ["Opening Stock", tradingCOGS.openingStock, calculateRate(tradingCOGS.openingStockValue, tradingCOGS.openingStock), tradingCOGS.openingStockValue],
-//             ["Closing Stock", tradingCOGS.closingStock, calculateRate(tradingCOGS.closingStockValue, tradingCOGS.closingStock), tradingCOGS.closingStockValue],
-//             ["Difference Stock", tradingCOGS.difference_stock, calculateRate(tradingCOGS.difference_stock_value, tradingCOGS.difference_stock), tradingCOGS.difference_stock_value]
-//         ];
-
-//         // Combine all data with spacing between sections
-//         const allData = [
-//             ...headers,
-//             ...hdpeData, [""], // Empty row for spacing
-//             ...mdData, [""],
-//             ...cpData, [""],
-//             ...rmData, [""],
-//             ...monofilData, [""],
-//             ...totalCogsData, [""],
-//             ...monofilSFGOpening, [""],
-//             ...monofilSFGPurchase, [""],
-//             ...monofilSFGClosing, [""],
-//             ...tradingData
-//         ];
-
-//         // Append all data to the worksheet
-//         xlsx.utils.sheet_add_aoa(ws, allData, { origin: "A1" });
-
-//         // Set column widths (optional)
-//         ws['!cols'] = [
-//             { wch: 25 }, // Particulars
-//             { wch: 15 }, // Qty
-//             { wch: 15 }, // Rate
-//             { wch: 15 }  // Value
-//         ];
-
-//         // Add the worksheet to the workbook
-//         xlsx.utils.book_append_sheet(wb, ws, "COGS");
-
-//         // Write the file
-//         const filePath = `./COGS_${monthHeader}.xlsx`;
-//         xlsx.writeFile(wb, filePath);
-
-//         console.log(`📊 Excel file generated: ${filePath}`);
-
-//         return res.json({ message: 'COGS data extracted and added successfully' });
-
-//     } catch (error) {
-//         console.error('❌ Error:', error);
-//         return res.status(500).json({ message: 'Internal Server Error' });
-//     }
-
-// });
-
 app.get("/cogs", async (req, res) => {
     try {
         const month = req.query.month;
@@ -1912,6 +1373,8 @@ app.get("/cogs", async (req, res) => {
             where: { time_id: timeRecord.id, material_type: "hdpeGranules" },
         });
 
+
+
         const hdpeCogsData = {
             openingStock: stockValuation ? stockValuation[0].qty : 0,
             openingStockValue: stockValuation ? stockValuation[0].value : 0,
@@ -1935,11 +1398,17 @@ app.get("/cogs", async (req, res) => {
             where: { time_id: timeRecord.id, material_type: "masterBatches" },
         });
 
+        const mbSales = await prisma.inventoryDetails.findMany({
+            where: { time_id: timeRecord.id, materialName: "Master Batch" },
+        });
+
         const mdCogsData = {
             openingStock: mBStockData ? mBStockData[0].qty : 0,
             openingStockValue: mBStockData ? mBStockData[0].value : 0,
             purchaseQty: mBPurchaseData ? mBPurchaseData.kgs : 0,
             purchaseValue: mBPurchaseData ? mBPurchaseData.value : 0,
+            salesQty: mbSales ? mbSales[0].outwardQty : 0,
+            salesValue: mbSales ? mbSales[0].amount : 0,
             closingStockQty: mBClosingStockData ? mBClosingStockData[0].qty : 0,
             closingStockValue: mBClosingStockData ? mBClosingStockData[0].value : 0,
         };
@@ -1970,8 +1439,8 @@ app.get("/cogs", async (req, res) => {
             openingStockValue: (cpCogsData?.openingStockValue || 0) + (mdCogsData?.openingStockValue || 0) + (hdpeCogsData?.openingStockValue || 0),
             purchaseQty: (cpCogsData?.purchaseQty || 0) + (mdCogsData?.purchaseQty || 0) + (hdpeCogsData?.purchaseQty || 0),
             purchaseValue: (cpCogsData?.purchaseValue || 0) + (mdCogsData?.purchaseValue || 0) + (hdpeCogsData?.purchaseValue || 0),
-            sales: hdpeCogsData?.salesQty || 0,
-            salesValue: hdpeCogsData?.salesValue || 0,
+            sales: (hdpeCogsData?.salesQty + mdCogsData?.salesQty) || 0,
+            salesValue: (hdpeCogsData?.salesValue + mdCogsData.salesValue) || 0,
             closingStock: (cpCogsData?.closingStockQty || 0) + (mdCogsData?.closingStockQty || 0) + (hdpeCogsData?.closingStockQty || 0),
             closingStockValue: (cpCogsData?.closingStockValue || 0) + (mdCogsData?.closingStockValue || 0) + (hdpeCogsData?.closingStockValue || 0),
         };
@@ -2085,6 +1554,29 @@ app.get("/cogs", async (req, res) => {
             closingStockValue: (stockValClosingStock[0] ? stockValClosingStock[0].value : 0) + (stockValClosingStock[1] ? stockValClosingStock[1].value : 0),
         };
 
+        const openingStockQtyTrading = await prisma.stockValuation.findUnique({
+            where: {
+                time_id: oneMonthBackRecord.id,
+                material_type: "shadenet_fabrics_weed_mat"
+            }
+        })
+
+        const tradingPL = await prisma.tradingPl.findUnique({
+            where: {
+                time_id: timeRecord.id
+            }
+        })
+
+        const tradingConsumptionData = {
+            openingStockQty: openingStockQtyTrading.qty,
+            openingStockValue: openingStockQtyTrading.value
+
+        }
+
+        console.log("------------------------")
+        console.log(tradingConsumptionData)
+        console.log("------------------------")
+
         tradingCOGS.difference_stock = Math.abs(tradingCOGS.openingStock - tradingCOGS.closingStock);
         tradingCOGS.difference_stock_value = Math.abs(tradingCOGS.openingStockValue - tradingCOGS.closingStockValue);
 
@@ -2173,6 +1665,7 @@ app.get("/cogs", async (req, res) => {
             ["MB", "", "", ""],
             ["Opening Stock", mdCogsData.openingStock, calculateRate(mdCogsData.openingStockValue, mdCogsData.openingStock), mdCogsData.openingStockValue],
             ["Purchase", mdCogsData.purchaseQty, calculateRate(mdCogsData.purchaseValue, mdCogsData.purchaseQty), mdCogsData.purchaseValue],
+            ["Sales", mdCogsData.salesQty, calculateRate(mdCogsData.salesValue, mdCogsData.salesQty), mdCogsData.salesValue],
             ["Closing Stock", mdCogsData.closingStockQty, calculateRate(mdCogsData.closingStockValue, mdCogsData.closingStockQty), mdCogsData.closingStockValue],
             ["Consumption MB", ((mdCogsData.openingStock + mdCogsData.purchaseQty) - (mdCogsData.closingStockQty)), calculateRate(((mdCogsData.openingStockValue + mdCogsData.purchaseValue) - (mdCogsData.closingStockValue)), ((mdCogsData.openingStock + mdCogsData.purchaseQty) - (mdCogsData.closingStockQty))), ((mdCogsData.openingStockValue + mdCogsData.purchaseValue) - (mdCogsData.closingStockValue))],
         ];
@@ -2219,7 +1712,8 @@ app.get("/cogs", async (req, res) => {
             ["Opening Stock", totalCogsDataCOGS.openingStock, calculateRate(totalCogsDataCOGS.openingStockValue, totalCogsDataCOGS.openingStock), totalCogsDataCOGS.openingStockValue],
             ["Purchase HD", totalCogsDataCOGS.purchaseHD, calculateRate(totalCogsDataCOGS.purchaseHDValue, totalCogsDataCOGS.purchaseHD), totalCogsDataCOGS.purchaseHDValue],
             ["Purchase MD", totalCogsDataCOGS.purchaseMD, calculateRate(totalCogsDataCOGS.purchaseMDValue, totalCogsDataCOGS.purchaseMD), totalCogsDataCOGS.purchaseMDValue],
-            ["Purchase Monofil", totalCogsDataCOGS.purchaseMonofil, calculateRate(totalCogsDataCOGS.purchaseMonofilValue, totalCogsDataCOGS.purchaseMonofil), totalCogsDataCOGS.purchaseMonofilValue],
+            ["Purchase Monofil Yarn", totalCogsDataCOGS.purchaseMonofil, calculateRate(totalCogsDataCOGS.purchaseMonofilValue, totalCogsDataCOGS.purchaseMonofil), totalCogsDataCOGS.purchaseMonofilValue],
+            ["Purchase Monofil Fabric", monofilCogsData.purchaseFabric, calculateRate(monofilCogsData.purchaseFabricValue, monofilCogsData.purchaseFabric), monofilCogsData.purchaseFabricValue],
             ["RM Sales", totalCogsDataCOGS.rmSales, calculateRate(totalCogsDataCOGS.rmSalesValue, totalCogsDataCOGS.rmSales), totalCogsDataCOGS.rmSalesValue],
             ["Closing Stock", totalCogsDataCOGS.closingStock, calculateRate(totalCogsDataCOGS.closingStockValue, totalCogsDataCOGS.closingStock), totalCogsDataCOGS.closingStockValue]
         ];
@@ -2243,87 +1737,31 @@ app.get("/cogs", async (req, res) => {
             ["FG Fabric", monogilSFGnFGClosingStockCOGS.fg_fabric, calculateRate(monogilSFGnFGClosingStockCOGS.fg_fabric_value, monogilSFGnFGClosingStockCOGS.fg_fabric), monogilSFGnFGClosingStockCOGS.fg_fabric_value]
         ];
 
+        const tradingConsumption = [
+            ["Trading Consumption", "", "", ""],
+            ["opening stock", "", "", ""]
+        ]
+
         const tradingData = [
             ["Trading COGS", "", "", ""],
             ["Opening Stock", tradingCOGS.openingStock, calculateRate(tradingCOGS.openingStockValue, tradingCOGS.openingStock), tradingCOGS.openingStockValue],
             ["Closing Stock", tradingCOGS.closingStock, calculateRate(tradingCOGS.closingStockValue, tradingCOGS.closingStock), tradingCOGS.closingStockValue],
-            ["Difference Stock", tradingCOGS.difference_stock, calculateRate(tradingCOGS.difference_stock_value, tradingCOGS.difference_stock), tradingCOGS.difference_stock_value]
+            ["Difference Stock", tradingCOGS.difference_stock, calculateRate(tradingCOGS.difference_stock_value, tradingCOGS.difference_stock), tradingCOGS.difference_stock_value],
+            ["", "", "", ""],
+            ["Difference in stocks", "", "", ""],
+            ["Monofil", Math.abs((monogilSFGnFGClosingStockCOGS.sfg_yarn + monogilSFGnFGClosingStockCOGS.fg_fabric) - (monofilSFGnFGOpeningStockCOGS.sfg_yarn + monofilSFGnFGOpeningStockCOGS.fg_fabric)), calculateRate(((monogilSFGnFGClosingStockCOGS.sfg_yarn_value + monogilSFGnFGClosingStockCOGS.fg_fabric_value) - (monofilSFGnFGOpeningStockCOGS.sfg_yarn_value + monofilSFGnFGOpeningStockCOGS.fg_fabric_value)), ((monogilSFGnFGClosingStockCOGS.sfg_yarn + monogilSFGnFGClosingStockCOGS.fg_fabric) - (monofilSFGnFGOpeningStockCOGS.sfg_yarn + monofilSFGnFGOpeningStockCOGS.fg_fabric))), Math.abs((monogilSFGnFGClosingStockCOGS.sfg_yarn_value + monogilSFGnFGClosingStockCOGS.fg_fabric_value) - (monofilSFGnFGOpeningStockCOGS.sfg_yarn_value + monofilSFGnFGOpeningStockCOGS.fg_fabric_value))],
+            ["Trading", Math.abs(tradingCOGS.closingStock - tradingCOGS.openingStock), calculateRate((tradingCOGS.closingStockValue - tradingCOGS.openingStockValue), (tradingCOGS.closingStock - tradingCOGS.openingStock)), Math.abs(tradingCOGS.closingStockValue - tradingCOGS.openingStockValue)],
         ];
 
-        // // Determine the starting column for the new data
-        // let startCol = 1; // Default to column B (1-based index, A is 0)
-        // if (fileExists) {
-        //     // Find the last column with data in the header row (row 1)
-        //     const range = xlsx.utils.decode_range(ws['!ref']);
-        //     for (let col = range.s.c; col <= range.e.c; col++) {
-        //         const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
-        //         if (!ws[cellAddress] || !ws[cellAddress].v) {
-        //             startCol = col;
-        //             break;
-        //         }
-        //     }
-        //     // If no empty column found, append after the last column
-        //     if (startCol === 1) {
-        //         startCol = range.e.c + 1;
-        //     }
-        // }
-
-        // // Prepare the data to append
-        // const allData = [
-        //     ...hdpeData, [""],
-        //     ...mdData, [""],
-        //     ...cpData, [""],
-        //     ...rmData, [""],
-        //     ...monofilData, [""],
-        //     ...totalCogsData, [""],
-        //     ...monofilSFGOpening, [""],
-        //     ...monofilSFGPurchase, [""],
-        //     ...monofilSFGClosing, [""],
-        //     ...tradingData
-        // ];
-
-        // // If file doesn't exist, add headers and particulars
-        // if (!fileExists) {
-        //     const headers = [
-        //         ["Particulars", monthHeader, "", ""],
-        //         ["", "Qty", "Rate", "Value"]
-        //     ];
-        //     xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
-        //     // Add particulars in the first column
-        //     const particulars = allData.map(row => [row[0]]);
-        //     xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
-        // } else {
-        //     // Update header with new month
-        //     xlsx.utils.sheet_add_aoa(ws, [[monthHeader, "", ""]], { origin: { r: 0, c: startCol } });
-        //     xlsx.utils.sheet_add_aoa(ws, [["Qty", "Rate", "Value"]], { origin: { r: 1, c: startCol } });
-        // }
-
-        // // Add new data (Qty, Rate, Value) starting from the third row
-        // let rowIndex = 2; // Start from row 3 (0-based index)
-        // for (const section of allData) {
-        //     if (section[0] !== "") { // Only write non-empty rows
-        //         const dataRow = section.slice(1); // Take Qty, Rate, Value
-        //         xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
-        //     }
-        //     rowIndex++; // Increment rowIndex for all rows, including empty ones
-        // }
-
-        // // Set column widths
-        // ws['!cols'] = ws['!cols'] || [];
-        // for (let i = 0; i < startCol + 4; i++) {
-        //     ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 25 : 15 };
-        // }
-
-        // // Add or update worksheet in workbook
-        // if (!fileExists) {
-        //     xlsx.utils.book_append_sheet(wb, ws, "COGS");
-        // }
-
-        // // Write the file
-        // xlsx.writeFile(wb, filePath);
-        // console.log(`📊 Excel file updated: ${filePath}`);
-
-        // return res.json({ message: 'COGS data extracted and added successfully' });
+        tradingData.push([
+            "Total Difference in stocks",
+            tradingData.at(-1)[1] + tradingData.at(-2)[1],
+            calculateRate(
+                tradingData.at(-1).at(-1) + tradingData.at(-2).at(-1),
+                tradingData.at(-1)[1] + tradingData.at(-2)[1]
+            ),
+            tradingData.at(-1).at(-1) + tradingData.at(-2).at(-1)
+        ]);
 
         let startCol = 1;
         if (fileExists) {
@@ -2408,255 +1846,6 @@ app.get("/cogs", async (req, res) => {
     }
 });
 
-// app.get("/pal1", async (req, res) => {
-//     try {
-//         const month = req.query.month
-
-//         const date = parseExcelDate(month);
-
-//         const timeRecord = await prisma.timeRecord.findUnique({
-//             where: {
-//                 time: date,
-//             },
-//         });
-
-//         if (!timeRecord) {
-//             return res.status(404).json({ message: 'Time record not found for the given date' });
-//         }
-
-//         const oneMonthBackRecord = await prisma.timeRecord.findFirst({
-//             where: {
-//                 time: new Date(date.setMonth(date.getMonth() - 1)),
-//             }
-//         });
-
-//         if (!oneMonthBackRecord) {
-//             return res.status(404).json({ message: 'Time record not found for the previous month' });
-//         }
-
-//         const opstock = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 AND: {
-//                     material_type: {
-//                         in: ["pp_fabric_sacks", "shadenet_fabrics_weed_mat", "hdpe_fishnet_fabrics", "hdpe_tape_factory", "hdpe_tape_job_work", "hdpeGranules", "masterBatches", "colourPigments"]
-//                     }
-//                 }
-//             }
-//         });
-
-//         const cpPurchase = await prisma.cPPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const mbPurchase = await prisma.mBPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const hdpePurchase = await prisma.hdpePurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const discount = await prisma.ConsumablesPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const purchTrading = await prisma.TRDNGPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const yarnPurch = await prisma.yarnPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const sravyaPurch = await prisma.sravyaOthersPurchase.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const clstock = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 AND: {
-//                     material_type: {
-//                         in: ["pp_fabric_sacks", "shadenet_fabrics_weed_mat", "hdpe_fishnet_fabrics", "hdpe_tape_factory", "hdpe_tape_job_work", "hdpeGranules", "masterBatches", "colourPigments"]
-//                     }
-//                 }
-//             }
-//         });
-
-//         const sales = await prisma.salesDetails.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         });
-
-//         const waste = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "HDPE Monofilament Waste"
-//             }
-//         });
-
-//         const palFinal = await prisma.salesDetails.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         })
-
-//         const directExpenses = await prisma.extrasManaufacturingDirectExpenses.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             }
-//         });
-
-//         const indirectExpenses = await prisma.totals.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 type: "Indirect COST"
-//             }
-//         });
-
-//         const pal1Data = {
-//             openingStock: opstock.reduce((acc, item) => acc + item.qty, 0),
-//             openingStockValue: opstock.reduce((acc, item) => acc + item.value, 0),
-
-//             purchaseRm: (cpPurchase ? cpPurchase.kgs : 0) + (mbPurchase ? mbPurchase.kgs : 0) + (hdpePurchase ? hdpePurchase.kgs : 0),
-//             purchaseRmValue: ((cpPurchase ? cpPurchase.value : 0) + (mbPurchase ? mbPurchase.value : 0) + (hdpePurchase ? hdpePurchase.value : 0)) - (discount ? discount.discount : 0),
-
-//             purchaseTrading: purchTrading ? purchTrading.kgs : 0,
-//             purchaseTradingValue: purchTrading ? purchTrading.value : 0,
-
-//             purchaseConsumables: (yarnPurch ? yarnPurch.kgs : 0) + (sravyaPurch ? sravyaPurch.kgs : 0),
-//             purchaseConsumablesValue: (yarnPurch ? yarnPurch.value : 0) + (sravyaPurch ? sravyaPurch.value : 0) + (discount ? discount.value : 0),
-
-//             closingStock: clstock.reduce((acc, item) => acc + item.qty, 0),
-//             closingStockValue: clstock.reduce((acc, item) => acc + item.value, 0),
-
-//             sales: (sales ? sales.grandTotalOutward : 0) - (waste ? waste.outwardQty : 0),
-//             salesValue: palFinal ? palFinal.pal1FinalSales : 0,
-
-//             waste: waste ? waste.outwardQty : 0,
-//             wasteValue: waste ? waste.amount : 0,
-
-//             otherInc: palFinal ? palFinal.otherIncome : 0,
-
-//             directExpenses: directExpenses ? directExpenses.manufacturing : 0,
-
-//             inHouseFabricationQty: directExpenses ? directExpenses.inHouseQty : 0,
-//             inHouseFabricationValue: directExpenses ? directExpenses.inHouseFabrication : 0,
-
-//             fabricationQty: directExpenses ? directExpenses.fabricators : 0,
-//             fabricationValue: directExpenses ? directExpenses.fabrication : 0,
-
-//             deprecation: directExpenses ? directExpenses.deprecation : 0,
-
-//             indirectExpenses: indirectExpenses[0] ? indirectExpenses[0].value : 0,
-
-//         }
-
-//         pal1Data.directCost = pal1Data.directExpenses + pal1Data.fabricationValue + pal1Data.inHouseFabricationValue
-//         pal1Data.totalCost = pal1Data.directCost + pal1Data.indirectExpenses + pal1Data.deprecation
-
-//         const d8 = pal1Data.openingStockValue + pal1Data.purchaseRmValue + pal1Data.purchaseTradingValue + pal1Data.purchaseConsumablesValue;
-//         const d10 = d8 - pal1Data.closingStockValue
-//         const d12 = pal1Data.salesValue - d10
-
-//         const d17 = d12 + pal1Data.wasteValue + pal1Data.otherInc
-
-//         pal1Data.ProfitA = Math.abs(d17 - (pal1Data.directCost + pal1Data.indirectExpenses + pal1Data.deprecation))
-
-//         console.log('📊 PAL1 Data:', pal1Data);
-
-
-//         const wb = xlsx.utils.book_new();
-//         const ws = xlsx.utils.json_to_sheet([], { skipHeader: true }); // Start with an empty sheet
-
-//         // Define the header row
-//         const monthHeader = req.query.month; // You can dynamically set this based on the `month` query param if needed
-//         const headers = [
-//             ["Particulars", monthHeader, "", ""], // Empty cells for alignment
-//             ["", "Qty", "Rate", "Value"] // Column headers
-//         ];
-
-//         // Helper function to calculate rate (value/qty) and handle division by zero
-//         const calculateRate = (value, qty) => qty !== 0 ? (value / qty).toFixed(2) : 0;
-
-//         // PAL1 Data for Excel
-//         const pal1ExcelData = [
-//             ["Opening Stock", pal1Data.openingStock, calculateRate(pal1Data.openingStockValue, pal1Data.openingStock), pal1Data.openingStockValue],
-//             ["Purchase RM", pal1Data.purchaseRm, calculateRate(pal1Data.purchaseRmValue, pal1Data.purchaseRm), pal1Data.purchaseRmValue],
-//             ["Purchase Trading", pal1Data.purchaseTrading, calculateRate(pal1Data.purchaseTradingValue, pal1Data.purchaseTrading), pal1Data.purchaseTradingValue],
-//             ["Purchase Consumables", pal1Data.purchaseConsumables, calculateRate(pal1Data.purchaseConsumablesValue, pal1Data.purchaseConsumables), pal1Data.purchaseConsumablesValue],
-//             ["Closing Stock", pal1Data.closingStock, calculateRate(pal1Data.closingStockValue, pal1Data.closingStock), pal1Data.closingStockValue],
-//             ["Sales", pal1Data.sales, calculateRate(pal1Data.salesValue, pal1Data.sales), pal1Data.salesValue],
-//             ["Waste", pal1Data.waste, calculateRate(pal1Data.wasteValue, pal1Data.waste), pal1Data.wasteValue],
-//             ["Other Income", "", "", pal1Data.otherInc], // No Qty for Other Income
-//             ["Direct Expenses", "", "", pal1Data.directExpenses], // No Qty for Direct Expenses
-//             ["In-House Fabrication", pal1Data.inHouseFabricationQty, calculateRate(pal1Data.inHouseFabricationValue, pal1Data.inHouseFabricationQty), pal1Data.inHouseFabricationValue],
-//             ["Fabrication", pal1Data.fabricationQty, calculateRate(pal1Data.fabricationValue, pal1Data.fabricationQty), pal1Data.fabricationValue],
-//             ["Deprecation", "", "", pal1Data.deprecation], // No Qty for Deprecation
-//             ["Indirect Expenses", "", "", pal1Data.indirectExpenses], // No Qty for Indirect Expenses
-//             ["Direct Cost", "", "", pal1Data.directCost], // Calculated field, no Qty
-//             ["Total Cost", "", "", pal1Data.totalCost], // Calculated field, no Qty
-//             ["Profit A", "", "", pal1Data.ProfitA] // Calculated field, no Qty
-//         ];
-
-//         // Combine headers and data
-//         const allData = [
-//             ...headers,
-//             ...pal1ExcelData
-//         ];
-
-//         // Append all data to the worksheet
-//         xlsx.utils.sheet_add_aoa(ws, allData, { origin: "A1" });
-
-//         // Set column widths (optional)
-//         ws['!cols'] = [
-//             { wch: 25 }, // Particulars
-//             { wch: 15 }, // Qty
-//             { wch: 15 }, // Rate
-//             { wch: 15 }  // Value
-//         ];
-
-//         // Add the worksheet to the workbook
-//         xlsx.utils.book_append_sheet(wb, ws, "PAL1");
-
-//         // Write the file
-//         const filePath = `./PAL1_${monthHeader}.xlsx`;
-//         xlsx.writeFile(wb, filePath);
-
-//         console.log(`📊 Excel file generated: ${filePath}`);
-
-
-//         await prisma.pal1.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...pal1Data },
-//             create: { time_id: timeRecord.id, ...pal1Data },
-//         });
-//         console.log('📊 PAL1 Data upserted:', pal1Data);
-
-//         return res.json({ message: 'PAL1 data extracted and added successfully' });
-
-//     } catch (error) {
-//         console.error('❌ Error:', error);
-//         return res.status(500).json({ message: 'Internal Server Error' });
-//     }
-// }
-// );
 
 
 app.get("/pal1", async (req, res) => {
@@ -2814,8 +2003,10 @@ app.get("/pal1", async (req, res) => {
             ["Closing Stock", pal1Data.closingStock, calculateRate(pal1Data.closingStockValue, pal1Data.closingStock), pal1Data.closingStockValue],
             ["Sales", pal1Data.sales, calculateRate(pal1Data.salesValue, pal1Data.sales), pal1Data.salesValue],
             ["Waste", pal1Data.waste, calculateRate(pal1Data.wasteValue, pal1Data.waste), pal1Data.wasteValue],
+            ["GST Refund", "", "", ""],
             ["Other Income", "", "", pal1Data.otherInc],
             ["Direct Expenses", "", "", pal1Data.directExpenses],
+            ["GST Refund", "", "", ""],
             ["In-House Fabrication", pal1Data.inHouseFabricationQty, calculateRate(pal1Data.inHouseFabricationValue, pal1Data.inHouseFabricationQty), pal1Data.inHouseFabricationValue],
             ["Fabrication", pal1Data.fabricationQty, calculateRate(pal1Data.fabricationValue, pal1Data.fabricationQty), pal1Data.fabricationValue],
             ["Deprecation", "", "", pal1Data.deprecation],
@@ -2825,67 +2016,6 @@ app.get("/pal1", async (req, res) => {
             ["Profit A", "", "", pal1Data.ProfitA]
         ];
 
-        // // Determine the starting column for the new data
-        // let startCol = 1; // Default to column B (1-based index, A is 0)
-        // if (fileExists) {
-        //     const range = xlsx.utils.decode_range(ws['!ref']);
-        //     for (let col = range.s.c; col <= range.e.c; col++) {
-        //         const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
-        //         if (!ws[cellAddress] || !ws[cellAddress].v) {
-        //             startCol = col;
-        //             break;
-        //         }
-        //     }
-        //     if (startCol === 1) {
-        //         startCol = range.e.c + 1;
-        //     }
-        // }
-
-        // // If file doesn't exist, add headers and particulars
-        // if (!fileExists) {
-        //     const headers = [
-        //         ["Particulars", monthHeader, "", ""],
-        //         ["", "Qty", "Rate", "Value"]
-        //     ];
-        //     xlsx.utils.sheet_add_aoa(ws, headers, { origin: "A1" });
-        //     const particulars = pal1ExcelData.map(row => [row[0]]);
-        //     xlsx.utils.sheet_add_aoa(ws, particulars, { origin: "A3" });
-        // } else {
-        //     xlsx.utils.sheet_add_aoa(ws, [[monthHeader, "", ""]], { origin: { r: 0, c: startCol } });
-        //     xlsx.utils.sheet_add_aoa(ws, [["Qty", "Rate", "Value"]], { origin: { r: 1, c: startCol } });
-        // }
-
-        // // Add new data (Qty, Rate, Value) starting from the third row
-        // let rowIndex = 2; // Start from row 3 (0-based index)
-        // for (const section of pal1ExcelData) {
-        //     const dataRow = section.slice(1); // Take Qty, Rate, Value
-        //     xlsx.utils.sheet_add_aoa(ws, [dataRow], { origin: { r: rowIndex, c: startCol } });
-        //     rowIndex++;
-        // }
-
-        // // Set column widths
-        // ws['!cols'] = ws['!cols'] || [];
-        // for (let i = 0; i < startCol + 4; i++) {
-        //     ws['!cols'][i] = ws['!cols'][i] || { wch: i === 0 ? 25 : 15 };
-        // }
-
-        // // Add or update worksheet in workbook
-        // if (!fileExists) {
-        //     xlsx.utils.book_append_sheet(wb, ws, "PAL1");
-        // }
-
-        // // Write the file
-        // xlsx.writeFile(wb, filePath);
-        // console.log(`📊 Excel file updated: ${filePath}`);
-
-        // await prisma.pal1.upsert({
-        //     where: { time_id: timeRecord.id },
-        //     update: { ...pal1Data },
-        //     create: { time_id: timeRecord.id, ...pal1Data },
-        // });
-        // console.log('📊 PAL1 Data upserted:', pal1Data);
-
-        // return res.json({ message: 'PAL1 data extracted and added successfully' });
 
 
         // Determine the starting column for the new data
@@ -2964,202 +2094,7 @@ app.get("/pal1", async (req, res) => {
     }
 });
 
-// app.get("/trading-pl", async (req, res) => {
-//     try {
-//         const month = req.query.month
 
-//         const date = parseExcelDate(month);
-
-//         const timeRecord = await prisma.timeRecord.findUnique({
-//             where: {
-//                 time: date,
-//             },
-//         });
-
-//         if (!timeRecord) {
-//             return res.status(404).json({ message: 'Time record not found for the given date' });
-//         }
-
-//         console.log(timeRecord);
-
-//         const MSN = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "MSN"
-//             }
-//         });
-
-//         const ANTI_BIRD_NET_Rope_MULCH_FIBC = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "ANTI BIRD NET / Rope/MULCH/FIBC"
-//             }
-//         });
-
-//         const TSN = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "TSN"
-//             }
-//         });
-
-//         const Weed_Mat_Black = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "Weed Mat 1.25 Mtrs Black"
-//             }
-//         });
-
-//         const PP_Woven_Sacks = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "PP Woven Sacks"
-//             }
-//         });
-
-//         // const Receipts_Mono_Shade = await prisma.ShadeNetsTradingQtyAnalysis.findFirst({
-//         //     where:{
-//         //         time_id:timeRecord.id,
-
-//         //     }
-//         // });
-
-//         const PPSPurchase = await prisma.PPSPurchase.findFirst({
-//             where: {
-//                 time_id: timeRecord.id
-//             }
-//         });
-
-
-//         const Purchase_TSN = await prisma.TSNPurchase.findFirst({
-//             where: { time_id: timeRecord.id }
-//         });
-
-//         console.log(Purchase_TSN);
-
-//         const Receipts_Mono_Shade = await prisma.shadeNetsTradingQtyAnalysis.findFirst({
-//             where: {
-//                 time_id: timeRecord.id
-//             }
-//         });
-
-
-//         const trading_pl = {
-
-//             // Sales- Mulch Film Fabric  ---empty
-
-//             Sales_Mono_Shade_Net_Qty: Math.round(
-//                 (MSN ? MSN.outwardQty : 0) + (ANTI_BIRD_NET_Rope_MULCH_FIBC ? ANTI_BIRD_NET_Rope_MULCH_FIBC.outwardQty : 0)),
-//             Sales_Mono_Shade_Net_Value: (MSN ? MSN.amount : 0) + (ANTI_BIRD_NET_Rope_MULCH_FIBC ? ANTI_BIRD_NET_Rope_MULCH_FIBC.amount : 0),
-
-//             // Sales PP Woven  Fabrics  ---empty
-
-//             Sales_Tape_Shade_Net_Qty: (TSN ? TSN.outwardQty : 0),
-//             Sales_Tape_Shade_Net_Value: Math.round(TSN ? TSN.amount : 0),
-
-//             Sales_Weed_Mate_Fabrics_Qty: Weed_Mat_Black ? Weed_Mat_Black.outwardQty : 0,
-//             Sales_Weed_Mate_Fabrics_Value: Weed_Mat_Black ? Weed_Mat_Black.amount : 0,
-
-//             Sales_PP_Woven_Sacks_Qty: PP_Woven_Sacks ? PP_Woven_Sacks.outwardQty : 0,
-//             Sales_PP_Woven_Sacks_Value: PP_Woven_Sacks ? PP_Woven_Sacks.amount : 0,
-
-//             Purchase_MSN_Qty: Math.round((Receipts_Mono_Shade ? Receipts_Mono_Shade.receiptsMonoShade : 0) + 479),
-//             // Purchase_MSN_Value:
-
-//             Purchase_PP_Sacks_Qty: Math.round(PPSPurchase ? PPSPurchase.kgs : 0),
-//             Purchase_PP_Sacks_Value: PPSPurchase ? PPSPurchase.value : 0,
-
-//             Purchase_TSN_Qty: Purchase_TSN ? Purchase_TSN.kgs : 0,
-//             Purchase_TSN_Value: Math.round(Purchase_TSN ? Purchase_TSN.value : 0),
-
-//             // Consumption_TSN_Qty: 0,   
-//             // Consumption_TSN_Value: 0,
-
-//             // Purchase_Others_Qty: 0,
-//             // Purchase_Others_Value: 0,
-
-//         }
-
-//         const wb = xlsx.utils.book_new();
-//         const ws = xlsx.utils.json_to_sheet([], { skipHeader: true }); // Start with an empty sheet
-
-//         // Define the header row using req.query.month
-//         const monthHeader = req.query.month; // Use the month from query param
-//         const headers = [
-//             ["Particulars", monthHeader, "", ""], // Empty cells for alignment
-//             ["", "Qty", "Value", "Rate"] // Column headers
-//         ];
-
-//         // Helper function to calculate rate (value/qty) and handle division by zero
-//         const calculateRate = (value, qty) => qty !== 0 && value !== "" ? (value / qty).toFixed(2) : "";
-
-//         // Trading PL Data for Excel (restructured to match the image, with Add: Purchase MSN added)
-//         const tradingPlExcelData = [
-//             ["Sales Accounts", "", "", ""], // Header
-//             ["Sales-Mulch Film Fabric", "", "", ""], // Empty as per your comment
-//             ["Sales-Mono Shade Net", trading_pl.Sales_Mono_Shade_Net_Qty, trading_pl.Sales_Mono_Shade_Net_Value, calculateRate(trading_pl.Sales_Mono_Shade_Net_Value, trading_pl.Sales_Mono_Shade_Net_Qty)],
-//             ["Sales-PP Woven Fabrics", "", "", ""], // Empty as per your comment
-//             ["Sales-Tape Shade Net", trading_pl.Sales_Tape_Shade_Net_Qty, trading_pl.Sales_Tape_Shade_Net_Value, calculateRate(trading_pl.Sales_Tape_Shade_Net_Value, trading_pl.Sales_Tape_Shade_Net_Qty)],
-//             ["Sales-Weed Mate Fabrics", trading_pl.Sales_Weed_Mate_Fabrics_Qty, trading_pl.Sales_Weed_Mate_Fabrics_Value, calculateRate(trading_pl.Sales_Weed_Mate_Fabrics_Value, trading_pl.Sales_Weed_Mate_Fabrics_Qty)],
-//             ["Sales-PP Woven Sacks", trading_pl.Sales_PP_Woven_Sacks_Qty, trading_pl.Sales_PP_Woven_Sacks_Value, calculateRate(trading_pl.Sales_PP_Woven_Sacks_Value, trading_pl.Sales_PP_Woven_Sacks_Qty)],
-//             ["Opening Stock", "", "", ""], // Missing data, left empty
-//             ["Add Purchase", "", "", ""], // Header
-//             ["Add: Purchase MSN", trading_pl.Purchase_MSN_Qty, "", ""], // Added here, Value and Rate empty since Purchase_MSN_Value is missing
-//             ["Add: Purchase PP Sacks", trading_pl.Purchase_PP_Sacks_Qty, trading_pl.Purchase_PP_Sacks_Value, calculateRate(trading_pl.Purchase_PP_Sacks_Value, trading_pl.Purchase_PP_Sacks_Qty)],
-//             ["Add: Purchase TSN", trading_pl.Purchase_TSN_Qty, trading_pl.Purchase_TSN_Value, calculateRate(trading_pl.Purchase_TSN_Value, trading_pl.Purchase_TSN_Qty)],
-//             ["Add: Consumption TSN", "", "", ""], // Commented out, left empty
-//             ["Add: Purchase Others", "", "", ""], // Commented out, left empty
-//             ["Less: Closing Stock", "", "", ""], // Missing data, left empty
-//             ["Cost of Sales", "", "", ""], // Calculated value missing, left empty
-//             ["Conveyance Charges", "", "", ""], // Not relevant, left empty
-//             ["Salary & Wages", "", "", ""], // Not relevant, left empty
-//             ["Commission on Sales", "", "", ""], // Not relevant, left empty
-//             ["Direct Expenses", "", "", ""], // Not relevant, left empty
-//             ["Gross Profit", "", "", ""] // Calculated value missing, left empty
-//         ];
-
-//         // Combine headers and data
-//         const allData = [
-//             ...headers,
-//             ...tradingPlExcelData
-//         ];
-
-//         // Append all data to the worksheet
-//         xlsx.utils.sheet_add_aoa(ws, allData, { origin: "A1" });
-
-//         // Set column widths (optional)
-//         ws['!cols'] = [
-//             { wch: 25 }, // Particulars
-//             { wch: 15 }, // Qty
-//             { wch: 15 }, // Value
-//             { wch: 15 }  // Rate
-//         ];
-
-//         // Add the worksheet to the workbook
-//         xlsx.utils.book_append_sheet(wb, ws, "TradingPL");
-
-//         // Write the file
-//         const filePath = `./TradingPL_${monthHeader}.xlsx`;
-//         xlsx.writeFile(wb, filePath);
-
-//         console.log(`📊 Excel file generated: ${filePath}`);
-
-//         await prisma.tradingPl.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...trading_pl },
-//             create: { time_id: timeRecord.id, ...trading_pl },
-//         });
-//         console.log('📊 TradingPl Data upserted:', trading_pl);
-
-//         console.log('📊 trading_pl Data:', trading_pl);
-//         return res.json({ message: 'Successfully created trading PL and generated Excel file', file: filePath });
-
-//     } catch (error) {
-//         console.error('❌ Error:', error);
-//         return res.status(500).json({ message: 'Internal Server Error' });
-//     }
-// }
-// );
 
 app.get('/trading-pl', async (req, res) => {
     try {
@@ -3185,8 +2120,20 @@ app.get('/trading-pl', async (req, res) => {
             where: { time: date },
         });
 
+
+
+
         if (!timeRecord) {
             return res.status(404).json({ message: 'Time record not found for the given date' });
+        }
+
+
+        const oneMonthBackRecord = await prisma.timeRecord.findFirst({
+            where: { time: new Date(date.setMonth(date.getMonth() - 1)) },
+        });
+
+        if (!oneMonthBackRecord) {
+            return res.status(404).json({ message: 'Time record not found for the previous month' });
         }
 
         console.log(timeRecord);
@@ -3221,9 +2168,17 @@ app.get('/trading-pl', async (req, res) => {
 
         console.log(Purchase_TSN);
 
-        const Receipts_Mono_Shade = await prisma.shadeNetsTradingQtyAnalysis.findFirst({
+        const msnPurchase = await prisma.mSNPurchase.findFirst({
+            where: { time_id: timeRecord.id }
+        })
+
+        const newExpenses = await prisma.tradingPLExpenses.findFirst({
             where: { time_id: timeRecord.id },
         });
+
+        //sum of all four value in newExpenses
+
+        const directExpenses = newExpenses.commission_on_sales + newExpenses.conveyance_charges + newExpenses.salary_and_wages + newExpenses.travelling_charges;
 
         const trading_pl = {
             Sales_Mono_Shade_Net_Qty: Math.round(
@@ -3236,7 +2191,8 @@ app.get('/trading-pl', async (req, res) => {
             Sales_Weed_Mate_Fabrics_Value: Weed_Mat_Black ? Weed_Mat_Black.amount : 0,
             Sales_PP_Woven_Sacks_Qty: PP_Woven_Sacks ? PP_Woven_Sacks.outwardQty : 0,
             Sales_PP_Woven_Sacks_Value: PP_Woven_Sacks ? PP_Woven_Sacks.amount : 0,
-            Purchase_MSN_Qty: Math.round((Receipts_Mono_Shade ? Receipts_Mono_Shade.receiptsMonoShade : 0) + 479),
+            Purchase_MSN_Qty: Math.round((msnPurchase ? msnPurchase.kgs : 0)),
+            Purchase_MSN_Value: Math.round((msnPurchase ? msnPurchase.value : 0)),
             Purchase_PP_Sacks_Qty: Math.round(PPSPurchase ? PPSPurchase.kgs : 0),
             Purchase_PP_Sacks_Value: PPSPurchase ? PPSPurchase.value : 0,
             Purchase_TSN_Qty: Purchase_TSN ? Purchase_TSN.kgs : 0,
@@ -3247,28 +2203,69 @@ app.get('/trading-pl', async (req, res) => {
         const monthHeader = req.query.month;
         const calculateRate = (value, qty) => qty !== 0 && value !== "" ? (value / qty).toFixed(2) : "";
 
+
+
+        const stockValuation = await prisma.stockValuation.findFirst({
+            where: { time_id: oneMonthBackRecord.id, material_type: "shadenet_fabrics_weed_mat" },
+        });
+
+        const closingStock = await prisma.stockValuation.findFirst({
+            where: { time_id: timeRecord.id, material_type: "shadenet_fabrics_weed_mat" },
+        });
+
+        const otherPurchases = await prisma.tradingPLOtherPurchase.findFirst({
+            where: { time_id: timeRecord.id }
+        })
+
+
+        const salesAccQty = trading_pl.Sales_Mono_Shade_Net_Qty + trading_pl.Sales_Tape_Shade_Net_Qty + trading_pl.Sales_Weed_Mate_Fabrics_Qty + trading_pl.Sales_PP_Woven_Sacks_Qty;
+        const salesAccValue = trading_pl.Sales_Mono_Shade_Net_Value + trading_pl.Sales_Tape_Shade_Net_Value + trading_pl.Sales_Weed_Mate_Fabrics_Value + trading_pl.Sales_PP_Woven_Sacks_Value;
+
+
+        const totalPurchasesQty = trading_pl.Purchase_MSN_Qty + trading_pl.Purchase_PP_Sacks_Qty + trading_pl.Purchase_TSN_Qty + otherPurchases.qty
+
+        const totalPurchasesValue = trading_pl.Purchase_MSN_Value + trading_pl.Purchase_PP_Sacks_Value + trading_pl.Purchase_TSN_Value + otherPurchases.value
+
+        const costOfSalesQty = stockValuation.qty + totalPurchasesQty - closingStock.qty;
+        const costOfSalesValue = stockValuation.value + totalPurchasesValue - closingStock.value;
+
+
+        const grossProfit = salesAccValue - (costOfSalesValue + directExpenses)
+
+
+        trading_pl.Cost_Of_Sales_Qty = costOfSalesQty;
+        trading_pl.Cost_Of_Sales_Value = costOfSalesValue;
+        trading_pl.Direct_Expenses_Value = directExpenses;
+        trading_pl.totalPurchasesQty = totalPurchasesQty
+        trading_pl.totalPurchasesValue = totalPurchasesValue
+
         const tradingPlExcelData = [
-            ["Sales Accounts", "", "", ""],
+            ["Sales Accounts", salesAccQty, salesAccValue, calculateRate(salesAccValue, salesAccQty)], //sum of all sales in the bottom
             ["Sales-Mulch Film Fabric", "", "", ""],
             ["Sales-Mono Shade Net", trading_pl.Sales_Mono_Shade_Net_Qty, trading_pl.Sales_Mono_Shade_Net_Value, calculateRate(trading_pl.Sales_Mono_Shade_Net_Value, trading_pl.Sales_Mono_Shade_Net_Qty)],
             ["Sales-PP Woven Fabrics", "", "", ""],
             ["Sales-Tape Shade Net", trading_pl.Sales_Tape_Shade_Net_Qty, trading_pl.Sales_Tape_Shade_Net_Value, calculateRate(trading_pl.Sales_Tape_Shade_Net_Value, trading_pl.Sales_Tape_Shade_Net_Qty)],
             ["Sales-Weed Mate Fabrics", trading_pl.Sales_Weed_Mate_Fabrics_Qty, trading_pl.Sales_Weed_Mate_Fabrics_Value, calculateRate(trading_pl.Sales_Weed_Mate_Fabrics_Value, trading_pl.Sales_Weed_Mate_Fabrics_Qty)],
             ["Sales-PP Woven Sacks", trading_pl.Sales_PP_Woven_Sacks_Qty, trading_pl.Sales_PP_Woven_Sacks_Value, calculateRate(trading_pl.Sales_PP_Woven_Sacks_Value, trading_pl.Sales_PP_Woven_Sacks_Qty)],
-            ["Opening Stock", "", "", ""],
+            ["Opening Stock", stockValuation.qty, stockValuation.value, calculateRate(stockValuation.value, stockValuation.qty)],
             ["Add Purchase", "", "", ""],
-            ["Add: Purchase MSN", trading_pl.Purchase_MSN_Qty, "", ""],
+            ["Add: Purchase MSN", trading_pl.Purchase_MSN_Qty, trading_pl.Purchase_MSN_Value, calculateRate(trading_pl.Purchase_MSN_Value, trading_pl.Purchase_MSN_Qty)],
             ["Add: Purchase PP Sacks", trading_pl.Purchase_PP_Sacks_Qty, trading_pl.Purchase_PP_Sacks_Value, calculateRate(trading_pl.Purchase_PP_Sacks_Value, trading_pl.Purchase_PP_Sacks_Qty)],
             ["Add: Purchase TSN", trading_pl.Purchase_TSN_Qty, trading_pl.Purchase_TSN_Value, calculateRate(trading_pl.Purchase_TSN_Value, trading_pl.Purchase_TSN_Qty)],
             ["Add: Consumption TSN", "", "", ""],
-            ["Add: Purchase Others", "", "", ""],
-            ["Less: Closing Stock", "", "", ""],
-            ["Cost of Sales", "", "", ""],
-            ["Conveyance Charges", "", "", ""],
-            ["Salary & Wages", "", "", ""],
-            ["Commission on Sales", "", "", ""],
-            ["Direct Expenses", "", "", ""],
-            ["Gross Profit", "", "", ""]
+            ["Add: Purchase Others", otherPurchases.qty, otherPurchases.value, calculateRate(otherPurchases.value, otherPurchases.qty)],
+            //add up all purchases 
+            ["Total Purchase", totalPurchasesQty,
+                totalPurchasesValue,
+                calculateRate(totalPurchasesValue, totalPurchasesQty)],
+            ["Less: Closing Stock", closingStock.qty, closingStock.value, calculateRate(closingStock.value, closingStock.qty)],
+            ["Cost of Sales", costOfSalesQty, costOfSalesValue, calculateRate(costOfSalesValue, costOfSalesQty)],
+            ["Conveyance Charges", "", newExpenses.conveyance_charges, ""],
+            ["Salary & Wages", "", newExpenses.salary_and_wages, ""],
+            ["Commission on Sales", "", newExpenses.commission_on_sales, ""],
+            ["Traveling Charges", "", newExpenses.travelling_charges, ""],
+            ["Direct Expenses", "", directExpenses, ""],
+            ["Gross Profit", "", grossProfit, ""]
         ];
 
         // Determine the starting column for the new data
@@ -3346,280 +2343,6 @@ app.get('/trading-pl', async (req, res) => {
     }
 });
 
-// app.get("/pal2", async (req, res) => {
-//     try {
-//         const month = req.query.month
-
-//         const date = parseExcelDate(month);
-
-//         const timeRecord = await prisma.timeRecord.findUnique({
-//             where: {
-//                 time: date,
-//             },
-//         });
-
-//         console.log(timeRecord);
-
-//         if (!timeRecord) {
-//             return res.status(404).json({ message: 'Time record not found for the given date' });
-//         }
-
-//         const oneMonthBackRecord = await prisma.timeRecord.findFirst({
-//             where: {
-//                 time: new Date(date.setMonth(date.getMonth() - 1)),
-//             }
-//         });
-
-//         if (!oneMonthBackRecord) {
-//             return res.status(404).json({ message: 'Time record not found for the previous month' });
-//         }
-
-//         const opstock = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: oneMonthBackRecord.id,
-//                 AND: {
-//                     material_type: {
-//                         in: ["hdpeGranules", "masterBatches", "colourPigments"]
-//                     }
-//                 }
-//             }
-//         });
-
-//         const Pal1 = await prisma.Pal1.findUnique({
-//             where: {
-//                 time_id: timeRecord.id,
-//             },
-//         })
-
-//         const clstock = await prisma.stockValuation.findMany({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 AND: {
-//                     material_type: {
-//                         in: ["hdpeGranules", "masterBatches", "colourPigments"]
-//                     }
-//                 }
-//             }
-//         });
-
-//         const Sale_of_Asset_Etc = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "Sale of Asset Etc"
-//             }
-//         });
-
-//         const Raw_Material = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "Raw Material"
-//             }
-//         })
-
-//         const HDPE_Monofilament_Waste = await prisma.inventoryDetails.findFirst({
-//             where: {
-//                 time_id: timeRecord.id,
-//                 materialName: "HDPE Monofilament Waste"
-//             }
-//         })
-
-//         const Trading_SaleS = await prisma.TradingPl.findFirst({
-//             where: {
-//                 time_id: timeRecord.id
-//             }
-//         })
-
-//         console.log(Pal1);
-
-
-//         const pal2Data = {
-//             openingStock: opstock.reduce((acc, item) => acc + item.qty, 0),
-//             openingStockValue: opstock.reduce((acc, item) => acc + item.value, 0),
-
-//             Purchase_RM_Qty: Pal1 ? Pal1.purchaseRm : 0,
-//             Purchase_RM_Value: Pal1 ? Pal1.purchaseRmValue : 0,
-
-//             Purchase_Trading_Qty: Math.round(Pal1 ? Pal1.purchaseTrading : 0),
-//             Purchase_Trading_Value: Math.round(Pal1 ? Pal1.purchaseTradingValue : 0),
-
-//             Purchase_consumable_Qty: Math.round(Pal1 ? Pal1.purchaseConsumables : 0),
-//             Purchase_consumable_Value: Math.round(Pal1 ? Pal1.purchaseConsumablesValue : 0),
-
-//             closingStock: clstock.reduce((acc, item) => acc + item.qty, 0),
-//             closingStockValue: clstock.reduce((acc, item) => acc + item.value, 0),
-
-//             HD_Sale_Qty: Math.round((Sale_of_Asset_Etc ? Sale_of_Asset_Etc.outwardQty : 0) + (Raw_Material ? Raw_Material.outwardQty : 0)),
-//             HD_Sale_Value: Math.round((Sale_of_Asset_Etc ? Sale_of_Asset_Etc.amount : 0) + (Raw_Material ? Raw_Material.amount : 0)),
-
-//             Trading_SaleS_Qty: Math.round((Trading_SaleS ? Trading_SaleS.Sales_Mono_Shade_Net_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Tape_Shade_Net_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Weed_Mate_Fabrics_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_PP_Woven_Sacks_Qty : 0)),
-//             Trading_SaleS_Value: Math.round((Trading_SaleS ? Trading_SaleS.Sales_Mono_Shade_Net_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Tape_Shade_Net_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Weed_Mate_Fabrics_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_PP_Woven_Sacks_Value : 0)),
-
-//             Monofil_Trading_Qty: Math.round(Pal1 ? Pal1.purchaseConsumables : 0),
-//             Monofil_Trading_Value: Math.round(Math.round(Pal1 ? Pal1.purchaseConsumables : 0) * 248.96),
-
-//             // Diff_SFG_FG -- pending
-
-//             GST_Refund_Qty: 0,
-//             GST_Refund_Value: 0,
-
-//             waste_Qty: HDPE_Monofilament_Waste ? HDPE_Monofilament_Waste.outwardQty : 0,
-//             waste_Value: HDPE_Monofilament_Waste ? HDPE_Monofilament_Waste.amount : 0,
-
-//             // Othr_Inc_Qty: Math.round(Pal1 ? Pal1.otherInc : 0),
-//             Othr_Inc_Value: Math.round(Pal1 ? Pal1.otherInc : 0),
-
-//             // Trading_Expns_Value -- pending
-
-//             // Direct_Expns     -- pending
-
-//             In_House_Fabrn_Qty: Pal1 ? Pal1.inHouseFabricationQty : 0,
-//             In_House_Fabrn_Value: Pal1 ? Pal1.inHouseFabricationValue : 0,
-
-//             Fabrication_Qty: Pal1 ? Pal1.fabricationQty : 0,
-//             Fabrication_Value: Pal1 ? Pal1.fabricationValue : 0,
-
-//             // SVE_HBSS  -- empty
-
-//             // Admn_Value
-
-//             //Selling
-
-//             Deprecition_value: Pal1 ? Pal1.deprecation : 0
-
-//             // W Cap Int
-
-//             // Term Loan  --empty
-
-//         }
-
-
-//         pal2Data.Monofil_Sales_Qty = Math.round(Math.round(Pal1 ? Pal1.sales : 0) - (pal2Data.HD_Sale_Qty + pal2Data.Trading_SaleS_Qty + pal2Data.Monofil_Trading_Qty));
-//         pal2Data.Monofil_Sales_Value = Math.round(Math.round(Pal1 ? Pal1.salesValue : 0) - (pal2Data.HD_Sale_Value + pal2Data.Trading_SaleS_Value + pal2Data.Monofil_Trading_Value));
-
-//         console.log('📊 PAL2 Data:', pal2Data);
-
-//         const wb = xlsx.utils.book_new();
-//         const ws = xlsx.utils.json_to_sheet([], { skipHeader: true }); // Start with an empty sheet
-
-//         // Define the header row using req.query.month
-//         const monthHeader = req.query.month; // Use the month from query param
-//         const headers = [
-//             ["Particulars", monthHeader, "", "", ""], // Empty cells for alignment
-//             ["", "Cost %", "Qty", "Value", "Rate"] // Column headers
-//         ];
-
-//         // Helper function to calculate rate (value/qty) and handle division by zero
-//         const calculateRate = (value, qty) => qty !== 0 && value !== "" ? (value / qty).toFixed(2) : "";
-
-//         // Helper function to calculate Cost % (value/totalSales * 100)
-//         const calculateCostPercentage = (value, total) => total !== 0 && value !== "" ? Math.round((value / total) * 100) + "%" : "";
-
-//         // Calculate Total Sales for Cost % base
-//         const totalSales = (pal2Data.HD_Sale_Value || 0) + (pal2Data.Trading_SaleS_Value || 0) + (pal2Data.Monofil_Trading_Value || 0) + (pal2Data.Monofil_Sales_Value || 0);
-
-//         // Calculate individual Cost % for expense/income items
-//         const directExpnsCostPercentage = 0; // Pending, will be 0% for now
-//         const tradingExpnsCostPercentage = 0; // Pending, will be 0% for now
-//         const inHouseFabrnCostPercentage = calculateCostPercentage(pal2Data.In_House_Fabrn_Value, totalSales);
-//         const fabricationCostPercentage = calculateCostPercentage(pal2Data.Fabrication_Value, totalSales);
-//         const directCostPercentage = parseInt(inHouseFabrnCostPercentage || 0) + parseInt(fabricationCostPercentage || 0); // Sum of Direct Expns, Trading Expns, In House Fabrn, Fabrication
-
-//         const sveHbssCostPercentage = 0; // Empty, will be 0% for now
-//         const adminCostPercentage = 0; // Empty, will be 0% for now
-//         const sellingCostPercentage = 0; // Empty, will be 0% for now
-//         const totalAdminCostPercentage = parseInt(sveHbssCostPercentage || 0) + parseInt(adminCostPercentage || 0) + parseInt(sellingCostPercentage || 0);
-
-//         const depreciationCostPercentage = calculateCostPercentage(pal2Data.Deprecition_value, totalSales);
-//         const wCapIntCostPercentage = 0; // Empty, will be 0% for now
-//         const termLoanCostPercentage = 0; // Empty, will be 0% for now
-//         const covidIntCostPercentage = 0; // Empty, will be 0% for now
-//         const intOnOthersCostPercentage = 0; // Empty, will be 0% for now
-//         const finCostPercentage = parseInt(depreciationCostPercentage || 0) + parseInt(wCapIntCostPercentage || 0) + parseInt(termLoanCostPercentage || 0) + parseInt(covidIntCostPercentage || 0) + parseInt(intOnOthersCostPercentage || 0);
-//         const depnAndIntCostPercentage = finCostPercentage;
-
-//         const totalExpnsCostPercentage = directCostPercentage + totalAdminCostPercentage + finCostPercentage;
-
-//         // PAL2 Data for Excel (restructured to match the image with dynamic Cost %)
-//         const pal2ExcelData = [
-//             ["Op Stk RM Only", calculateCostPercentage(pal2Data.openingStockValue, totalSales), pal2Data.openingStock, pal2Data.openingStockValue, calculateRate(pal2Data.openingStockValue, pal2Data.openingStock)],
-//             ["Purchase RM", "", pal2Data.Purchase_RM_Qty, pal2Data.Purchase_RM_Value, calculateRate(pal2Data.Purchase_RM_Value, pal2Data.Purchase_RM_Qty)],
-//             ["Purchase Trading", "", pal2Data.Purchase_Trading_Qty, pal2Data.Purchase_Trading_Value, calculateRate(pal2Data.Purchase_Trading_Value, pal2Data.Purchase_Trading_Qty)],
-//             ["Purchase Consumable", "", pal2Data.Purchase_consumable_Qty, pal2Data.Purchase_consumable_Value, calculateRate(pal2Data.Purchase_consumable_Value, pal2Data.Purchase_consumable_Qty)],
-//             ["Cl Stk RM Only", "", pal2Data.closingStock, pal2Data.closingStockValue, calculateRate(pal2Data.closingStockValue, pal2Data.closingStock)],
-//             ["HD Sale", "", pal2Data.HD_Sale_Qty, pal2Data.HD_Sale_Value, calculateRate(pal2Data.HD_Sale_Value, pal2Data.HD_Sale_Qty)],
-//             ["Trading Sales", "", pal2Data.Trading_SaleS_Qty, pal2Data.Trading_SaleS_Value, calculateRate(pal2Data.Trading_SaleS_Value, pal2Data.Trading_SaleS_Qty)],
-//             ["Monofil Trading", "", pal2Data.Monofil_Trading_Qty, pal2Data.Monofil_Trading_Value, calculateRate(pal2Data.Monofil_Trading_Value, pal2Data.Monofil_Trading_Qty)],
-//             ["Monofil Sales", "", pal2Data.Monofil_Sales_Qty, pal2Data.Monofil_Sales_Value, calculateRate(pal2Data.Monofil_Sales_Value, pal2Data.Monofil_Sales_Qty)],
-//             ["Total Sales", "", "", totalSales, ""], // Total calculated dynamically
-//             ["Diff SFG/FG", "", "", "", ""], // Pending, left empty
-//             ["GST Refund", "", pal2Data.GST_Refund_Qty, pal2Data.GST_Refund_Value, calculateRate(pal2Data.GST_Refund_Value, pal2Data.GST_Refund_Qty)],
-//             ["Waste", "", pal2Data.waste_Qty, pal2Data.waste_Value, calculateRate(pal2Data.waste_Value, pal2Data.waste_Qty)],
-//             ["Othr Inc", calculateCostPercentage(pal2Data.Othr_Inc_Value, totalSales), "", pal2Data.Othr_Inc_Value, ""], // No Qty for Other Income
-//             ["Direct Expns", directExpnsCostPercentage + "%", "", "", ""], // Pending, left empty
-//             ["Trading Expns", tradingExpnsCostPercentage + "%", "", "", ""], // Pending, left empty
-//             ["In House Fabrn", inHouseFabrnCostPercentage, pal2Data.In_House_Fabrn_Qty, pal2Data.In_House_Fabrn_Value, calculateRate(pal2Data.In_House_Fabrn_Value, pal2Data.In_House_Fabrn_Qty)],
-//             ["Fabrication", fabricationCostPercentage, pal2Data.Fabrication_Qty, pal2Data.Fabrication_Value, calculateRate(pal2Data.Fabrication_Value, pal2Data.Fabrication_Qty)],
-//             ["DIRECT COST", directCostPercentage + "%", "", "", ""], // Sum of percentages
-//             ["SVE-HBSS", sveHbssCostPercentage + "%", "", "", ""], // Empty, left empty
-//             ["Admin", adminCostPercentage + "%", "", "", ""], // Empty, left empty
-//             ["Selling", sellingCostPercentage + "%", "", "", ""], // Empty, left empty
-//             ["TOTAL", totalAdminCostPercentage + "%", "", "", ""], // Sum of percentages
-//             ["EBITDA", "", "", "", ""], // Calculated, left empty
-//             ["Depreciation", depreciationCostPercentage, "", pal2Data.Deprecition_value, ""], // No Qty for Depreciation
-//             ["W Cap Int", wCapIntCostPercentage + "%", "", "", ""], // Empty, left empty
-//             ["Term Loan", termLoanCostPercentage + "%", "", "", ""], // Empty, left empty
-//             ["Covid Int", covidIntCostPercentage + "%", "", "", ""], // Empty, left empty
-//             ["Int On Others", intOnOthersCostPercentage + "%", "", "", ""], // Empty, left empty
-//             ["FIN Cost", finCostPercentage + "%", "", "", ""], // Sum of percentages
-//             ["Depn & INT", depnAndIntCostPercentage + "%", "", "", ""], // Sum of percentages
-//             ["Total Expns", totalExpnsCostPercentage + "%", "", "", ""], // Sum of percentages
-//             ["Profit (A)", "", "", "", ""] // Calculated, left empty
-//         ];
-
-//         // Combine headers and data
-//         const allData = [
-//             ...headers,
-//             ...pal2ExcelData
-//         ];
-
-//         // Append all data to the worksheet
-//         xlsx.utils.sheet_add_aoa(ws, allData, { origin: "A1" });
-
-//         // Set column widths (optional)
-//         ws['!cols'] = [
-//             { wch: 15 }, // Particulars
-//             { wch: 10 }, // Cost %
-//             { wch: 15 }, // Qty
-//             { wch: 15 }, // Value
-//             { wch: 15 }  // Rate
-//         ];
-
-//         // Add the worksheet to the workbook
-//         xlsx.utils.book_append_sheet(wb, ws, "PAL2");
-
-//         // Write the file
-//         const filePath = `./PAL2_${monthHeader}.xlsx`;
-//         xlsx.writeFile(wb, filePath);
-
-//         console.log(`📊 Excel file generated: ${filePath}`);
-
-//         // Upsert PAL2 data into the database (your existing code)
-//         await prisma.pal2.upsert({
-//             where: { time_id: timeRecord.id },
-//             update: { ...pal2Data },
-//             create: { time_id: timeRecord.id, ...pal2Data },
-//         });
-//         console.log('📊 PAL2 Data upserted:', pal2Data);
-
-//         // Send response
-//         return res.json({ message: 'PAL2 data extracted, added, and Excel file generated successfully', file: filePath });
-
-//     } catch (error) {
-//         console.error('❌ Error:', error);
-//         return res.status(500).json({ message: 'Internal Server Error' });
-//     }
-// }
-// );
 
 app.get('/pal2', async (req, res) => {
     try {
@@ -3690,6 +2413,10 @@ app.get('/pal2', async (req, res) => {
             where: { time_id: timeRecord.id, materialName: "Sale of Asset Etc" },
         });
 
+        const masterBatch = await prisma.inventoryDetails.findFirst({
+            where: { time_id: timeRecord.id, materialName: "Master Batch" }
+        });
+
         const Raw_Material = await prisma.inventoryDetails.findFirst({
             where: { time_id: timeRecord.id, materialName: "Raw Material" },
         });
@@ -3700,6 +2427,26 @@ app.get('/pal2', async (req, res) => {
 
         const Trading_SaleS = await prisma.TradingPl.findFirst({
             where: { time_id: timeRecord.id },
+        });
+
+        const admn = await prisma.totals.findFirst({
+            where: { time_id: timeRecord.id, type: "Admn" }
+        });
+
+        const sellingExpense = await prisma.totals.findFirst({
+            where: { time_id: timeRecord.id, type: "Selling Expenses" }
+        });
+
+        const covidLoanInt = await prisma.totals.findFirst({
+            where: { time_id: timeRecord.id, type: "COVID LOAN Int" }
+        });
+
+        const WCapInt = await prisma.totals.findFirst({
+            where: { time_id: timeRecord.id, type: "W Cap Int" }
+        });
+
+        const IntOnOthers = await prisma.totals.findFirst({
+            where: { time_id: timeRecord.id, type: "Int On Others" }
         });
 
         console.log(Pal1);
@@ -3715,8 +2462,8 @@ app.get('/pal2', async (req, res) => {
             Purchase_consumable_Value: Math.round(Pal1 ? Pal1.purchaseConsumablesValue : 0),
             closingStock: clstock.reduce((acc, item) => acc + item.qty, 0),
             closingStockValue: clstock.reduce((acc, item) => acc + item.value, 0),
-            HD_Sale_Qty: Math.round((Sale_of_Asset_Etc ? Sale_of_Asset_Etc.outwardQty : 0) + (Raw_Material ? Raw_Material.outwardQty : 0)),
-            HD_Sale_Value: Math.round((Sale_of_Asset_Etc ? Sale_of_Asset_Etc.amount : 0) + (Raw_Material ? Raw_Material.amount : 0)),
+            HD_Sale_Qty: Math.round((masterBatch ? masterBatch.outwardQty : 0) + (Raw_Material ? Raw_Material.outwardQty : 0)),
+            HD_Sale_Value: Math.round((masterBatch ? masterBatch.amount : 0) + (Raw_Material ? Raw_Material.amount : 0)),
             Trading_SaleS_Qty: Math.round((Trading_SaleS ? Trading_SaleS.Sales_Mono_Shade_Net_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Tape_Shade_Net_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Weed_Mate_Fabrics_Qty : 0) + (Trading_SaleS ? Trading_SaleS.Sales_PP_Woven_Sacks_Qty : 0)),
             Trading_SaleS_Value: Math.round((Trading_SaleS ? Trading_SaleS.Sales_Mono_Shade_Net_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Tape_Shade_Net_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_Weed_Mate_Fabrics_Value : 0) + (Trading_SaleS ? Trading_SaleS.Sales_PP_Woven_Sacks_Value : 0)),
             Monofil_Trading_Qty: Math.round(Pal1 ? Pal1.purchaseConsumables : 0),
@@ -3730,7 +2477,9 @@ app.get('/pal2', async (req, res) => {
             In_House_Fabrn_Value: Pal1 ? Pal1.inHouseFabricationValue : 0,
             Fabrication_Qty: Pal1 ? Pal1.fabricationQty : 0,
             Fabrication_Value: Pal1 ? Pal1.fabricationValue : 0,
-            Deprecition_value: Pal1 ? Pal1.deprecation : 0
+            Deprecition_value: Pal1 ? Pal1.deprecation : 0,
+            Admn_Value: admn ? admn.value : 0,
+            Selling_Value: sellingExpense ? sellingExpense.value : 0,
         };
 
         pal2Data.Monofil_Sales_Qty = Math.round(Math.round(Pal1 ? Pal1.sales : 0) - (pal2Data.HD_Sale_Qty + pal2Data.Trading_SaleS_Qty + pal2Data.Monofil_Trading_Qty));
@@ -3763,6 +2512,47 @@ app.get('/pal2', async (req, res) => {
         const depnAndIntCostPercentage = finCostPercentage;
         const totalExpnsCostPercentage = directCostPercentage + totalAdminCostPercentage + finCostPercentage;
 
+        const difSFGnFG = await prisma.stockValuation.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                material_type: "difSFGnFG"
+            }
+        })
+
+        const finCost = covidLoanInt.value + WCapInt.value + IntOnOthers.value
+        const depnAndInt = finCost + pal2Data.Deprecition_value
+
+        const totalSalesQty = await prisma.pal1.findUnique({
+            where: { time_id: timeRecord.id },
+            select: { sales: true }
+        })
+
+        const tradingplExp = await prisma.tradingPl.findUnique({
+            where: { time_id: timeRecord.id }
+        })
+
+        const tradingExpenses = tradingplExp ? tradingplExp.Direct_Expenses_Value + tradingplExp.Cost_Of_Sales_Value : 0;
+
+        const pal1DirectExpenses = await prisma.pal1.findUnique({
+            where: { time_id: timeRecord.id }
+        });
+
+        const dirExp = pal1DirectExpenses ? pal1DirectExpenses.directExpenses - tradingExpenses : 0;
+
+        const dirCost = pal2Data.In_House_Fabrn_Value + pal2Data.Fabrication_Value + dirExp + tradingExpenses;
+
+
+        const TOTAL = pal2Data.Admn_Value + pal2Data.Selling_Value
+
+        //EBITDA calculation
+        const AP8 = pal2Data.openingStockValue + pal2Data.Purchase_RM_Value + pal2Data.Purchase_Trading_Value + pal2Data.Purchase_consumable_Value
+        const AP10 = AP8 - pal2Data.closingStockValue
+        const AP16 = totalSales - AP10
+        const AP22 = AP16 - difSFGnFG.value + pal2Data.waste_Value + pal2Data.Othr_Inc_Value
+        const EBITDA = AP22 - (dirCost + TOTAL)
+
+        const TotalEXPNS = dirCost + TOTAL + depnAndInt;
+
         const pal2ExcelData = [
             ["Op Stk RM Only", calculateCostPercentage(pal2Data.openingStockValue, totalSales), pal2Data.openingStock, pal2Data.openingStockValue, calculateRate(pal2Data.openingStockValue, pal2Data.openingStock)],
             ["Purchase RM", "", pal2Data.Purchase_RM_Qty, pal2Data.Purchase_RM_Value, calculateRate(pal2Data.Purchase_RM_Value, pal2Data.Purchase_RM_Qty)],
@@ -3773,30 +2563,30 @@ app.get('/pal2', async (req, res) => {
             ["Trading Sales", "", pal2Data.Trading_SaleS_Qty, pal2Data.Trading_SaleS_Value, calculateRate(pal2Data.Trading_SaleS_Value, pal2Data.Trading_SaleS_Qty)],
             ["Monofil Trading", "", pal2Data.Monofil_Trading_Qty, pal2Data.Monofil_Trading_Value, calculateRate(pal2Data.Monofil_Trading_Value, pal2Data.Monofil_Trading_Qty)],
             ["Monofil Sales", "", pal2Data.Monofil_Sales_Qty, pal2Data.Monofil_Sales_Value, calculateRate(pal2Data.Monofil_Sales_Value, pal2Data.Monofil_Sales_Qty)],
-            ["Total Sales", "", "", totalSales, ""],
-            ["Diff SFG/FG", "", "", "", ""],
+            ["Total Sales", "", totalSalesQty.sales, totalSales, calculateRate(totalSales, totalSalesQty.sales)],
+            ["Diff SFG/FG", "", difSFGnFG.qty, difSFGnFG.value, ""],
             ["GST Refund", "", pal2Data.GST_Refund_Qty, pal2Data.GST_Refund_Value, calculateRate(pal2Data.GST_Refund_Value, pal2Data.GST_Refund_Qty)],
             ["Waste", "", pal2Data.waste_Qty, pal2Data.waste_Value, calculateRate(pal2Data.waste_Value, pal2Data.waste_Qty)],
             ["Othr Inc", calculateCostPercentage(pal2Data.Othr_Inc_Value, totalSales), "", pal2Data.Othr_Inc_Value, ""],
-            ["Direct Expns", directExpnsCostPercentage + "%", "", "", ""],
-            ["Trading Expns", tradingExpnsCostPercentage + "%", "", "", ""],
+            ["Direct Expns", directExpnsCostPercentage + "%", "", dirExp, ""],
+            ["Trading Expns", tradingExpnsCostPercentage + "%", "", tradingExpenses, ""],
             ["In House Fabrn", inHouseFabrnCostPercentage, pal2Data.In_House_Fabrn_Qty, pal2Data.In_House_Fabrn_Value, calculateRate(pal2Data.In_House_Fabrn_Value, pal2Data.In_House_Fabrn_Qty)],
             ["Fabrication", fabricationCostPercentage, pal2Data.Fabrication_Qty, pal2Data.Fabrication_Value, calculateRate(pal2Data.Fabrication_Value, pal2Data.Fabrication_Qty)],
-            ["DIRECT COST", directCostPercentage + "%", "", "", ""],
+            ["DIRECT COST", directCostPercentage + "%", "", dirCost, calculateRate(dirCost, totalSalesQty.sales)],
             ["SVE-HBSS", sveHbssCostPercentage + "%", "", "", ""],
-            ["Admin", adminCostPercentage + "%", "", "", ""],
-            ["Selling", sellingCostPercentage + "%", "", "", ""],
-            ["TOTAL", totalAdminCostPercentage + "%", "", "", ""],
-            ["EBITDA", "", "", "", ""],
+            ["Admin", adminCostPercentage + "%", "", pal2Data.Admn_Value, ""],
+            ["Selling", sellingCostPercentage + "%", "", pal2Data.Selling_Value, ""],
+            ["TOTAL", totalAdminCostPercentage + "%", "", TOTAL, calculateRate(TOTAL, totalSalesQty.sales)],
+            ["EBITDA", "", "", EBITDA, ""],
             ["Depreciation", depreciationCostPercentage, "", pal2Data.Deprecition_value, ""],
-            ["W Cap Int", wCapIntCostPercentage + "%", "", "", ""],
+            ["W Cap Int", wCapIntCostPercentage + "%", "", WCapInt.value, ""],
             ["Term Loan", termLoanCostPercentage + "%", "", "", ""],
-            ["Covid Int", covidIntCostPercentage + "%", "", "", ""],
-            ["Int On Others", intOnOthersCostPercentage + "%", "", "", ""],
-            ["FIN Cost", finCostPercentage + "%", "", "", ""],
-            ["Depn & INT", depnAndIntCostPercentage + "%", "", "", ""],
-            ["Total Expns", totalExpnsCostPercentage + "%", "", "", ""],
-            ["Profit (A)", "", "", "", ""]
+            ["Covid Int", covidIntCostPercentage + "%", "", covidLoanInt.value, ""],
+            ["Int On Others", intOnOthersCostPercentage + "%", "", IntOnOthers.value, ""],
+            ["FIN Cost", finCostPercentage + "%", "", finCost, ""],
+            ["Depn & INT", depnAndIntCostPercentage + "%", "", depnAndInt, ""],
+            ["Total Expns", totalExpnsCostPercentage + "%", "", { v: 1000.00, t: 'n', z: '0.00' }, ""],
+            ["Profit (A)", "", "", AP22 - TotalEXPNS, ""]
         ];
 
         // Determine the starting column for the new data
@@ -4452,11 +3242,11 @@ app.get('/finAnalysis', async (req, res) => {
             totalSales, // Total (Sales)
             sales.otherInc, // Othr Inc
             consumption.monofil, // Monofil (Consumption)
-            calculatePercentage(consumption.monofil, consumption.totalConsumption), // %age
+            calculatePercentage(consumption.monofil, sales.monofil), // %age
             consumption.mfPurchase, // MF Purchase
             consumption.sfgFG, // SFG/FG (Monofil)
             consumption.totalMonofil, // Total Monofil (Consumption)
-            calculatePercentage(consumption.totalMonofil, consumption.totalConsumption), // %age
+            calculatePercentage(consumption.totalMonofil, sales.monofil), // %age
             0, // Trading (Consumption) - Placeholder, as it's missing
             consumption.tradingSFGfg, // SFG/FG (Trading)
             consumption.rm, // RM (Consumption)

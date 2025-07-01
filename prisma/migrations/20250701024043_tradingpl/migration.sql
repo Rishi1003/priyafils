@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "TradingPl" ADD COLUMN     "Total_Purchases_Qty" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "Total_Purchases_Value" DOUBLE PRECISION NOT NULL DEFAULT 0;

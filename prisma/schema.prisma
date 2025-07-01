@@ -18,6 +18,8 @@ model TimeRecord {
   time DateTime @unique
 }
 
+//stock Valuation//
+
 model StockValuation {
   id            Int    @id @default(autoincrement())
   time_id       Int
@@ -293,6 +295,13 @@ model TRDNGPurchase {
   value   Float
 }
 
+model TradingPLOtherPurchase {
+  id      Int   @id @default(autoincrement())
+  time_id Int   @unique
+  qty     Float
+  value   Float
+}
+
 //////inventory sales//////
 
 model inventoryDetails {
@@ -397,6 +406,15 @@ model fixedExpenses2 {
   financeCostIntOnDeposits Float
 }
 
+model TradingPLExpenses {
+  id                  Int   @id @default(autoincrement())
+  time_id             Int   @unique
+  conveyance_charges  Float
+  salary_and_wages    Float
+  commission_on_sales Float
+  travelling_charges  Float
+}
+
 //////////indirect Expenses/////////////
 
 model AdministrativeExpense {
@@ -458,6 +476,8 @@ model MdCogs {
   openingStock      Float @default(0)
   openingStockValue Float @default(0)
   purchaseQty       Float @default(0)
+  salesQty          Float @default(0)
+  salesValue        Float @default(0)
   purchaseValue     Float @default(0)
   closingStockQty   Float @default(0)
   closingStockValue Float @default(0)
@@ -615,6 +635,11 @@ model TradingPl {
   Consumption_TSN_Value         Float @default(0)
   Purchase_Others_Qty           Float @default(0)
   Purchase_Others_Value         Float @default(0)
+  Cost_Of_Sales_Qty             Float @default(0)
+  Cost_Of_Sales_Value           Float @default(0)
+  Direct_Expenses_Value         Float @default(0)
+  Total_Purchases_Qty           Float @default(0)
+  Total_Purchases_Value         Float @default(0)
 }
 
 //////PAL2///////
