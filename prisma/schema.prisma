@@ -376,21 +376,21 @@ model extrasManaufacturingDirectExpenses {
 model variableAndDirect {
   id                        Int   @id @default(autoincrement())
   time_id                   Int   @unique
-  wagesFabric               Float
-  wagesInspectionDispatch   Float
-  fabricationCharges        Float
-  wagesYarn                 Float
-  yarnProcessingCharges     Float
-  freightInward             Float
-  powerBill                 Float
-  rmMachinery               Float
-  rmElectricals             Float
-  rent                      Float
-  packingCharges            Float
-  misc                      Float
-  workingCapitalBankCharges Float
-  workingCapitalLc          Float
-  workingCapitalOcc         Float
+  wagesFabric               Float @default(0)
+  wagesInspectionDispatch   Float @default(0)
+  fabricationCharges        Float @default(0)
+  wagesYarn                 Float @default(0)
+  yarnProcessingCharges     Float @default(0)
+  freightInward             Float @default(0)
+  powerBill                 Float @default(0)
+  rmMachinery               Float @default(0)
+  rmElectricals             Float @default(0)
+  rent                      Float @default(0)
+  packingCharges            Float @default(0)
+  misc                      Float @default(0)
+  workingCapitalBankCharges Float @default(0)
+  workingCapitalLc          Float @default(0)
+  workingCapitalOcc         Float @default(0)
 }
 
 model fixedExpenses2 {
@@ -581,6 +581,19 @@ model TradingCogs {
   difference_stock_value Float @default(0)
 }
 
+model TradingConsumption {
+  id                       Int   @id @default(autoincrement())
+  time_id                  Int   @unique
+  openingStockQty          Float @default(0)
+  openingStockValue        Float @default(0)
+  purchases_qty            Float @default(0)
+  purchases_value          Float @default(0)
+  closing_stock_qty        Float @default(0)
+  closing_stock_value      Float @default(0)
+  consumptionTrading_qty   Float @default(0)
+  consumptionTrading_value Float @default(0)
+}
+
 ///PAL1///
 model Pal1 {
   id                       Int   @id @default(autoincrement())
@@ -704,6 +717,7 @@ model Consumption {
   monofil          Float
   mfPurchase       Float
   sfgFG            Float
+  trading          Float
   tradingSFGfg     Float
   rm               Float
   totalMonofil     Float

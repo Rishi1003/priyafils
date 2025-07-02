@@ -1554,7 +1554,7 @@ app.get("/cogs", async (req, res) => {
             closingStockValue: (stockValClosingStock[0] ? stockValClosingStock[0].value : 0) + (stockValClosingStock[1] ? stockValClosingStock[1].value : 0),
         };
 
-        const openingStockQtyTrading = await prisma.stockValuation.findUnique({
+        const openingStockQtyTrading = await prisma.stockValuation.findFirst({
             where: {
                 time_id: oneMonthBackRecord.id,
                 material_type: "shadenet_fabrics_weed_mat"
@@ -1567,11 +1567,24 @@ app.get("/cogs", async (req, res) => {
             }
         })
 
-        const tradingConsumptionData = {
-            openingStockQty: openingStockQtyTrading.qty,
-            openingStockValue: openingStockQtyTrading.value
+        const closingStockQtyTrading = await prisma.stockValuation.findFirst({
+            where: {
+                time_id: timeRecord.id,
+                material_type: "shadenet_fabrics_weed_mat"
+            }
+        })
 
+        const tradingConsumptionData = {
+            openingStockQty: openingStockQtyTrading ? openingStockQtyTrading.qty : 0,
+            openingStockValue: openingStockQtyTrading ? openingStockQtyTrading.value : 0,
+            purchases_qty: tradingPL ? tradingPL.Total_Purchases_Qty : 0,
+            purchases_value: tradingPL ? tradingPL.Total_Purchases_Value : 0,
+            closing_stock_qty: closingStockQtyTrading ? closingStockQtyTrading.qty : 0,
+            closing_stock_value: closingStockQtyTrading ? closingStockQtyTrading.value : 0
         }
+
+        tradingConsumptionData.consumptionTrading_qty = (tradingConsumptionData.openingStockQty + tradingConsumptionData.purchases_qty) - (tradingConsumptionData.closing_stock_qty)
+        tradingConsumptionData.consumptionTrading_value = (tradingConsumptionData.openingStockValue + tradingConsumptionData.purchases_value) - (tradingConsumptionData.closing_stock_value)
 
         console.log("------------------------")
         console.log(tradingConsumptionData)
@@ -1581,6 +1594,13 @@ app.get("/cogs", async (req, res) => {
         tradingCOGS.difference_stock_value = Math.abs(tradingCOGS.openingStockValue - tradingCOGS.closingStockValue);
 
         // Upsert data to Prisma (same as original)
+
+        await prisma.tradingConsumption.upsert({
+            where: { time_id: timeRecord.id },
+            update: { ...tradingConsumptionData },
+            create: { time_id: timeRecord.id, ...tradingConsumptionData }
+        })
+
         await prisma.hdpeCogs.upsert({
             where: { time_id: timeRecord.id },
             update: { ...hdpeCogsData },
@@ -1739,7 +1759,13 @@ app.get("/cogs", async (req, res) => {
 
         const tradingConsumption = [
             ["Trading Consumption", "", "", ""],
-            ["opening stock", "", "", ""]
+            ["opening stock", tradingConsumptionData.openingStockQty, calculateRate(tradingConsumptionData.openingStockValue, tradingConsumptionData.openingStockQty), tradingConsumptionData.openingStockValue],
+            ["Add: Purchases", tradingConsumptionData.purchases_qty, calculateRate(tradingConsumptionData.purchases_value, tradingConsumptionData.purchases_qty), tradingConsumptionData.purchases_value],
+            ["Add: Job Work Rcpts", "", "", ""],
+            ["Less: Purchase Return", "", "", ""],
+            ["Less: Sales", "", "", ""],
+            ["Closing Stock", tradingConsumptionData.closing_stock_qty, calculateRate(tradingConsumptionData.closing_stock_value, tradingConsumptionData.closing_stock_qty), tradingConsumptionData.closing_stock_value],
+            ["Consumption Trading", tradingConsumptionData.consumptionTrading_qty, calculateRate(tradingConsumptionData.consumptionTrading_value, tradingConsumptionData.consumptionTrading_qty), tradingConsumptionData.consumptionTrading_value],
         ]
 
         const tradingData = [
@@ -1787,6 +1813,7 @@ app.get("/cogs", async (req, res) => {
             ...cpData, [""],
             ...rmData, [""],
             ...monofilData, [""],
+            ...tradingConsumption, [""],
             ...totalCogsData, [""],
             ...monofilSFGOpening, [""],
             ...monofilSFGPurchase, [""],
@@ -2236,8 +2263,8 @@ app.get('/trading-pl', async (req, res) => {
         trading_pl.Cost_Of_Sales_Qty = costOfSalesQty;
         trading_pl.Cost_Of_Sales_Value = costOfSalesValue;
         trading_pl.Direct_Expenses_Value = directExpenses;
-        trading_pl.totalPurchasesQty = totalPurchasesQty
-        trading_pl.totalPurchasesValue = totalPurchasesValue
+        trading_pl.Total_Purchases_Qty = totalPurchasesQty
+        trading_pl.Total_Purchases_Value = totalPurchasesValue
 
         const tradingPlExcelData = [
             ["Sales Accounts", salesAccQty, salesAccValue, calculateRate(salesAccValue, salesAccQty)], //sum of all sales in the bottom
@@ -3069,6 +3096,47 @@ app.get('/finAnalysis', async (req, res) => {
             where: { time_id: timeRecord.id },
         });
 
+        const tradingConsumption = await prisma.tradingConsumption.findUnique({
+            where: {
+                time_id: timeRecord.id
+            }
+        });
+
+
+        const variableAndDirect_DirExp = await prisma.variableAndDirect.findUnique({
+            where: { time_id: timeRecord.id }
+        });
+
+        // Destructure to exclude id and time_id
+        const { id, time_id, workingCapitalBankCharges, workingCapitalLc, workingCapitalOcc, ...expenseFields } = variableAndDirect_DirExp;
+
+        // Sum all values
+        const AB16_DirExp = !variableAndDirect_DirExp ? 0 : Object.values(expenseFields).reduce((sum, value) => sum + value, 0);
+        const AB20_DirExp = workingCapitalBankCharges + workingCapitalLc + workingCapitalOcc
+        const AB21_DirExp = AB16_DirExp + AB20_DirExp;
+
+        const AB47_DirExp = variableAndDirect_DirExp.wagesFabric + variableAndDirect_DirExp.wagesInspectionDispatch + variableAndDirect_DirExp.fabricationCharges
+        const tradPl = await prisma.tradingPl.findUnique({
+            where: { time_id: timeRecord.id }
+        });
+
+        const AB48_DirExp = tradPl.Direct_Expenses_Value || 0
+
+        const AB46_DirExp = AB21_DirExp - (AB47_DirExp + AB48_DirExp)
+
+
+        const fixedExp = await prisma.fixedExpenses2.findUnique({
+            where: { time_id: timeRecord.id }
+        });
+
+        const { id: _id, time_id: _time_i, ...fixedExpSum } = fixedExp
+
+        const AB32DirExp = !fixedExpSum ? 0 : Object.values(fixedExpSum).reduce((sum, value) => sum + value, 0);
+
+        const AB50DirExp = fixedExp ? fixedExp.depreciation : 0;
+
+        const AB49DirExp = AB32DirExp - AB50DirExp;
+
         const sales = {
             monofil: (pal2 ? pal2.Monofil_Sales_Value : 0) + (pal2 ? pal2.Monofil_Trading_Value : 0),
             trading: pal2 ? pal2.Trading_SaleS_Value : 0,
@@ -3080,12 +3148,13 @@ app.get('/finAnalysis', async (req, res) => {
             monofil,
             mfPurchase: (mfPurchase?.yarnValue || 0) + (mfPurchase?.purchaseFabricValue || 0) + (mfPurchase?.consumablesPurchase || 0),
             sfgFG: openingValue - closingValue,
-            tradingSFGfg: tradingSFGfg?.difference_stock_value || 0,
+            trading: tradingConsumption ? tradingConsumption.consumptionTrading_value : 0,
+            tradingSFGfg: (tradingSFGfg ? tradingSFGfg.openingStockValue : 0) - (tradingSFGfg ? tradingSFGfg.closingStockValue : 0),
             rm: rm?.salesValue || 0,
         };
 
         consumption.totalMonofil = consumption.monofil + consumption.mfPurchase + consumption.sfgFG;
-        consumption.totalConsumption = consumption.totalMonofil + consumption.tradingSFGfg + consumption.rm;
+        consumption.totalConsumption = consumption.totalMonofil + consumption.tradingSFGfg + consumption.rm + consumption.trading;
 
         console.log('📊 Consumption:', consumption);
 
@@ -3111,7 +3180,7 @@ app.get('/finAnalysis', async (req, res) => {
             frabic: s47,
         };
 
-        const deprecation = await prisma.fixedExpenses.findUnique({
+        const deprecation = await prisma.pal2.findUnique({
             where: { time_id: timeRecord.id },
         });
 
@@ -3125,8 +3194,8 @@ app.get('/finAnalysis', async (req, res) => {
             : 0;
 
         const fixedExpenses = {
-            deprecation,
-            overheads,
+            deprecation: deprecation.Deprecition_value,
+            overheads: AB49DirExp,
         };
 
         // Database upsert operations remain unchanged
@@ -3200,7 +3269,7 @@ app.get('/finAnalysis', async (req, res) => {
         const currentMonth = req.query.month;
         const calculatePercentage = (value, total) => total !== 0 && value !== "" ? Math.round((value / total) * 100) + "%" : "";
 
-        const depreciationValue = fixedExpenses.deprecation?.depreciation || 0;
+        const depreciationValue = fixedExpenses.deprecation || 0;
         const overheadsValue = fixedExpenses.overheads || 0;
 
         // Break down operating expenses into Yarn, Fabric, and Trading
@@ -3215,9 +3284,9 @@ app.get('/finAnalysis', async (req, res) => {
         } : { yarn: 0, fabric: 0, trading: 0 };
 
         const operatingExpensesDetail = {
-            yarn: operatingExpensesBreakdown.yarn,
+            yarn: AB46_DirExp,
             fabric: operatingExpensesBreakdown.fabric - s47, // Adjust fabric expenses
-            trading: operatingExpensesBreakdown.trading,
+            trading: AB48_DirExp,
             totalVariableAndDirect: operatingExpensesBreakdown.yarn + (operatingExpensesBreakdown.fabric - s47) + operatingExpensesBreakdown.trading,
         };
 
@@ -3225,13 +3294,13 @@ app.get('/finAnalysis', async (req, res) => {
         const totalSales = sales.monofil + sales.trading + sales.rm;
 
         // Calculate Operating Profit (OP Profit)
-        const opProfit = totalSales + sales.otherInc - consumption.totalConsumption - operatingExpensesDetail.totalVariableAndDirect;
+        const opProfit = (totalSales + sales.otherInc) - (consumption.totalConsumption + operatingExpensesDetail.yarn + operatingExpensesDetail.fabric + operatingExpensesDetail.trading);
 
         // Calculate Net Profit (NET)
         const netProfit = opProfit - depreciationValue - overheadsValue;
 
         const headers = [
-            ["Month", "Monofil", "Trading", "RM Sales", "Total", "Othr Inc", "Monofil", "%age", "MF Purchase", "SFG/FG", "Total Monofil", "%age", "Trading", "SFG/FG", "RM", "Total Consm", "%age", "Yarn", "%age", "Fabric", "%age", "Trading", "Operating Expenses", "%age", "OP Profit", "Depreciation", "%age", "Overheads", "%age", "NET"]
+            ["Month", "Monofil", "Trading", "RM Sales", "Total", "Othr Inc", "Monofil", "%age", "MF Purchase", "SFG/FG", "Total Monofil", "%age", "Trading", "SFG/FG", "RM", "Total Consm", "%age", "Yarn", "%age", "Fabric", "%age", "Trading", "OP Profit", "Depreciation", "Overheads", "%age", "NET"]
         ];
 
         const dataRow = [
@@ -3247,23 +3316,20 @@ app.get('/finAnalysis', async (req, res) => {
             consumption.sfgFG, // SFG/FG (Monofil)
             consumption.totalMonofil, // Total Monofil (Consumption)
             calculatePercentage(consumption.totalMonofil, sales.monofil), // %age
-            0, // Trading (Consumption) - Placeholder, as it's missing
-            consumption.tradingSFGfg, // SFG/FG (Trading)
+            consumption.trading, // Trading (Consumption) - Placeholder, as it's missing
+            consumption.tradingSFGfg < 0 ? "(" + Math.abs(consumption.tradingSFGfg) + ")" : consumption.tradingSFGfg, // SFG/FG (Trading)
             consumption.rm, // RM (Consumption)
             consumption.totalConsumption, // Total Consm
-            "100%", // %age (Total Consm, always 100%)
+            Math.round(((consumption.totalConsumption / totalSales) * 100)) + "%",
             operatingExpensesDetail.yarn, // Yarn
-            calculatePercentage(operatingExpensesDetail.yarn, consumption.totalConsumption), // %age
+            calculatePercentage(operatingExpensesDetail.yarn, sales.monofil), // %age
             operatingExpensesDetail.fabric, // Fabric
-            calculatePercentage(operatingExpensesDetail.fabric, consumption.totalConsumption), // %age
+            calculatePercentage(operatingExpensesDetail.fabric, (sales.monofil + sales.trading + sales.rm)), // %age
             operatingExpensesDetail.trading, // Trading (Operating Expenses)
-            operatingExpensesDetail.totalVariableAndDirect, // Operating Expenses (Total)
-            calculatePercentage(operatingExpensesDetail.totalVariableAndDirect, consumption.totalConsumption), // %age
             opProfit, // OP Profit
             depreciationValue, // Depreciation
-            calculatePercentage(depreciationValue, consumption.totalConsumption), // %age
             overheadsValue, // Overheads
-            calculatePercentage(overheadsValue, consumption.totalConsumption), // %age
+            calculatePercentage(overheadsValue, totalSales), // %age
             netProfit // NET
         ];
 
